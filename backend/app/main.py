@@ -1,7 +1,8 @@
 from datetime import date
 from pathlib import Path
+from uuid import uuid4
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app.config import UPLOADS_DIR
 from app.database import initialize_database
@@ -15,11 +16,14 @@ from app.repositories import (
     list_schedule_for_day,
     list_wardrobe_items,
     monthly_expense_summary,
+    process_existing_receipt_text,
 )
 from app.schemas import (
     DailyBriefing,
     MonthlyExpenseSummary,
+    OcrStatus,
     Receipt,
+    ReceiptProcessText,
     ReceiptTextCreate,
     Grocery,
     GroceryCreate,
@@ -29,6 +33,7 @@ from app.schemas import (
     WardrobeItemCreate,
 )
 from app.services.planner import build_daily_briefing
+from app.services.ocr import OcrUnavailableError, extract_text_from_image, tesseract_available
 from app.services.receipts import parse_receipt_text
 from app.services.weather import get_dresden_weather
 
@@ -111,7 +116,7 @@ async def upload_receipt_photo(
 ) -> dict:
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     safe_name = Path(file.filename or "receipt.jpg").name
-    target = UPLOADS_DIR / f"{purchased_on.isoformat()}-{safe_name}"
+    target = UPLOADS_DIR / f"{purchased_on.isoformat()}-{uuid4().hex[:8]}-{safe_name}"
     target.write_bytes(await file.read())
     return create_receipt_from_items(
         store=store,
@@ -121,6 +126,59 @@ async def upload_receipt_photo(
         image_path=str(target),
         status="uploaded_needs_ocr",
     )
+
+
+@app.post("/receipts/scan-photo", response_model=Receipt, status_code=201)
+async def scan_receipt_photo(
+    store: str,
+    purchased_on: date,
+    file: UploadFile = File(...),
+) -> dict:
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    safe_name = Path(file.filename or "receipt.jpg").name
+    target = UPLOADS_DIR / f"{purchased_on.isoformat()}-{uuid4().hex[:8]}-{safe_name}"
+    target.write_bytes(await file.read())
+
+    try:
+        raw_text = extract_text_from_image(str(target))
+    except OcrUnavailableError as exc:
+        return create_receipt_from_items(
+            store=store,
+            purchased_on=purchased_on,
+            raw_text=str(exc),
+            items=[],
+            image_path=str(target),
+            status="uploaded_needs_ocr",
+        )
+
+    items = parse_receipt_text(raw_text)
+    return create_receipt_from_items(
+        store=store,
+        purchased_on=purchased_on,
+        raw_text=raw_text,
+        items=items,
+        image_path=str(target),
+    )
+
+
+@app.post("/receipts/{receipt_id}/process-text", response_model=Receipt)
+def process_receipt_text(receipt_id: int, payload: ReceiptProcessText) -> dict:
+    items = parse_receipt_text(payload.raw_text)
+    try:
+        return process_existing_receipt_text(receipt_id, payload.raw_text, items)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Receipt not found") from exc
+
+
+@app.get("/ocr/status", response_model=OcrStatus)
+def ocr_status() -> dict[str, str | bool]:
+    available = tesseract_available()
+    message = (
+        "Tesseract OCR is available."
+        if available
+        else "Tesseract OCR is not available on PATH. Receipt photos can be uploaded, but automatic OCR will wait."
+    )
+    return {"available": available, "message": message}
 
 
 @app.get("/expenses/monthly", response_model=MonthlyExpenseSummary)

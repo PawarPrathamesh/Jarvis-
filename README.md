@@ -47,7 +47,10 @@ POST /schedule
 GET  /receipts
 POST /receipts/from-text
 POST /receipts/upload-photo
+POST /receipts/scan-photo
+POST /receipts/{receipt_id}/process-text
 GET  /expenses/monthly
+GET  /ocr/status
 ```
 
 Example receipt text payload:
@@ -61,6 +64,15 @@ Example receipt text payload:
 ```
 
 Jarvis will parse the line items, add food items to the grocery inventory, keep snack/household items out of groceries, and include everything in monthly spending summaries.
+
+Receipt photo workflow:
+
+- `POST /receipts/upload-photo` stores a receipt image and marks it as `uploaded_needs_ocr`.
+- `POST /receipts/scan-photo` stores a receipt image and attempts OCR with Tesseract.
+- `GET /ocr/status` tells you whether Tesseract is available on this machine.
+- `POST /receipts/{receipt_id}/process-text` lets you paste corrected OCR text for an uploaded receipt.
+
+If Tesseract is not installed or not on PATH, Jarvis still stores the receipt photo safely and waits for manual text or future OCR setup.
 
 ## Next Milestones
 

@@ -50,6 +50,15 @@ class ReceiptTextCreate(BaseModel):
     raw_text: str
 
 
+class ReceiptProcessText(BaseModel):
+    raw_text: str
+
+
+class OcrStatus(BaseModel):
+    available: bool
+    message: str
+
+
 class ReceiptItem(BaseModel):
     id: int
     receipt_id: int

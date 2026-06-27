@@ -187,6 +187,59 @@ def create_receipt_from_items(
     return get_receipt(receipt_id)
 
 
+def process_existing_receipt_text(receipt_id: int, raw_text: str, items: list[dict]) -> dict:
+    receipt = get_receipt(receipt_id)
+    purchased_on = date.fromisoformat(receipt["purchased_on"])
+    total = round(sum(float(item.get("price") or 0) for item in items), 2)
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE receipts
+            SET raw_text = ?, total = ?, status = 'processed'
+            WHERE id = ?
+            """,
+            (raw_text, total, receipt_id),
+        )
+        connection.execute("DELETE FROM receipt_items WHERE receipt_id = ?", (receipt_id,))
+
+        for item in items:
+            category = item["category"]
+            inventory_added = category not in {"snack", "drink", "household", "other"}
+            connection.execute(
+                """
+                INSERT INTO receipt_items
+                (receipt_id, name, category, quantity, price, inventory_added)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    receipt_id,
+                    item["name"],
+                    category,
+                    item.get("quantity", "1 item"),
+                    item.get("price", 0),
+                    int(inventory_added),
+                ),
+            )
+            if inventory_added:
+                connection.execute(
+                    """
+                    INSERT INTO groceries (name, category, quantity, expires_on, store, price)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        item["name"],
+                        category,
+                        item.get("quantity", "1 item"),
+                        estimate_expiry(category, purchased_on),
+                        receipt["store"],
+                        item.get("price", 0),
+                    ),
+                )
+
+    return get_receipt(receipt_id)
+
+
 def list_receipts() -> list[dict]:
     with get_connection() as connection:
         rows = connection.execute(
@@ -209,6 +262,8 @@ def get_receipt(receipt_id: int) -> dict:
             """,
             (receipt_id,),
         ).fetchone()
+        if receipt is None:
+            raise ValueError(f"Receipt not found: {receipt_id}")
         items = connection.execute(
             """
             SELECT id, receipt_id, name, category, quantity, price, inventory_added
