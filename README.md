@@ -51,6 +51,9 @@ POST /receipts/scan-photo
 POST /receipts/{receipt_id}/process-text
 GET  /expenses/monthly
 GET  /ocr/status
+GET  /budget
+PUT  /budget
+GET  /budget/status
 ```
 
 Example receipt text payload:
@@ -73,6 +76,12 @@ Receipt photo workflow:
 - `POST /receipts/{receipt_id}/process-text` lets you paste corrected OCR text for an uploaded receipt.
 
 If Tesseract is not installed or not on PATH, Jarvis still stores the receipt photo safely and waits for manual text or future OCR setup.
+
+Budget endpoints:
+
+- `GET /budget` shows current monthly budget settings.
+- `PUT /budget` updates food, snack, and eating-out budgets.
+- `GET /budget/status?month=2026-06` compares tracked spending against the monthly food budget.
 
 ## Next Milestones
 

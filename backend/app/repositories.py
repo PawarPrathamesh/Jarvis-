@@ -4,6 +4,13 @@ from app.database import get_connection
 from app.services.receipts import estimate_expiry
 
 
+DEFAULT_BUDGETS = {
+    "monthly_food_budget": 250.0,
+    "monthly_snack_budget": 25.0,
+    "monthly_eating_out_budget": 60.0,
+}
+
+
 def list_groceries() -> list[dict]:
     with get_connection() as connection:
         rows = connection.execute(
@@ -301,6 +308,68 @@ def monthly_expense_summary(month: str) -> dict:
         "total": total,
         "categories": categories,
         "suggestions": _saving_suggestions(categories),
+    }
+
+
+def get_budget_settings() -> dict:
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT key, value
+            FROM preferences
+            WHERE key IN (?, ?, ?)
+            """,
+            tuple(DEFAULT_BUDGETS.keys()),
+        ).fetchall()
+
+    values = DEFAULT_BUDGETS.copy()
+    for row in rows:
+        values[row["key"]] = float(row["value"])
+    return values
+
+
+def update_budget_settings(payload: dict) -> dict:
+    values = DEFAULT_BUDGETS.copy()
+    values.update({key: float(value) for key, value in payload.items()})
+    with get_connection() as connection:
+        for key, value in values.items():
+            connection.execute(
+                """
+                INSERT INTO preferences (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (key, str(value)),
+            )
+    return get_budget_settings()
+
+
+def monthly_budget_status(month: str) -> dict:
+    settings = get_budget_settings()
+    summary = monthly_expense_summary(month)
+    budget = settings["monthly_food_budget"]
+    spent = summary["total"]
+    remaining = round(budget - spent, 2)
+    percent_used = round((spent / budget) * 100, 1) if budget else 0
+
+    if percent_used >= 100:
+        status = "over_budget"
+        message = "You are over your monthly food budget. Prefer pantry meals and avoid impulse shopping."
+    elif percent_used >= 85:
+        status = "near_limit"
+        message = "You are close to your monthly food budget. Keep the next shopping trip focused."
+    else:
+        status = "on_track"
+        message = "You are on track with your monthly food budget."
+
+    return {
+        "month": month,
+        "monthly_food_budget": budget,
+        "spent": spent,
+        "remaining": remaining,
+        "percent_used": percent_used,
+        "status": status,
+        "message": message,
     }
 
 

@@ -11,14 +11,19 @@ from app.repositories import (
     create_receipt_from_items,
     create_schedule_item,
     create_wardrobe_item,
+    get_budget_settings,
     list_receipts,
     list_groceries,
     list_schedule_for_day,
     list_wardrobe_items,
+    monthly_budget_status,
     monthly_expense_summary,
     process_existing_receipt_text,
+    update_budget_settings,
 )
 from app.schemas import (
+    BudgetSettings,
+    BudgetStatus,
     DailyBriefing,
     MonthlyExpenseSummary,
     OcrStatus,
@@ -58,7 +63,11 @@ async def daily_briefing(day: date | None = None) -> DailyBriefing:
     groceries = list_groceries()
     wardrobe = list_wardrobe_items()
     schedule = list_schedule_for_day(target_day)
-    return build_daily_briefing(weather, groceries, wardrobe, schedule, target_day)
+    briefing = build_daily_briefing(weather, groceries, wardrobe, schedule, target_day)
+    budget = monthly_budget_status(target_day.strftime("%Y-%m"))
+    if budget["status"] != "on_track":
+        briefing.alerts.append(budget["message"])
+    return briefing
 
 
 @app.get("/groceries", response_model=list[Grocery])
@@ -185,3 +194,19 @@ def ocr_status() -> dict[str, str | bool]:
 def expenses_monthly(month: str | None = None) -> dict:
     target_month = month or date.today().strftime("%Y-%m")
     return monthly_expense_summary(target_month)
+
+
+@app.get("/budget", response_model=BudgetSettings)
+def budget_settings() -> dict:
+    return get_budget_settings()
+
+
+@app.put("/budget", response_model=BudgetSettings)
+def update_budget(payload: BudgetSettings) -> dict:
+    return update_budget_settings(payload.model_dump())
+
+
+@app.get("/budget/status", response_model=BudgetStatus)
+def budget_status(month: str | None = None) -> dict:
+    target_month = month or date.today().strftime("%Y-%m")
+    return monthly_budget_status(target_month)

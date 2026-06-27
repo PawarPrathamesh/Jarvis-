@@ -45,6 +45,7 @@ def seed() -> None:
         connection.execute("DELETE FROM groceries")
         connection.execute("DELETE FROM wardrobe_items")
         connection.execute("DELETE FROM schedule_items")
+        connection.execute("DELETE FROM preferences")
         connection.executemany(
             """
             INSERT INTO groceries (name, category, quantity, expires_on, store, price)
@@ -67,6 +68,17 @@ def seed() -> None:
             VALUES (?, ?, ?, ?, ?, ?)
             """,
             schedule,
+        )
+        connection.executemany(
+            """
+            INSERT INTO preferences (key, value)
+            VALUES (?, ?)
+            """,
+            [
+                ("monthly_food_budget", "250"),
+                ("monthly_snack_budget", "25"),
+                ("monthly_eating_out_budget", "60"),
+            ],
         )
 
 

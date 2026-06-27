@@ -93,6 +93,22 @@ class MonthlyExpenseSummary(BaseModel):
     suggestions: list[str]
 
 
+class BudgetSettings(BaseModel):
+    monthly_food_budget: float = 250.0
+    monthly_snack_budget: float = 25.0
+    monthly_eating_out_budget: float = 60.0
+
+
+class BudgetStatus(BaseModel):
+    month: str
+    monthly_food_budget: float
+    spent: float
+    remaining: float
+    percent_used: float
+    status: str
+    message: str
+
+
 class WeatherSummary(BaseModel):
     temperature_c: float
     feels_like_c: float | None = None
