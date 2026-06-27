@@ -58,8 +58,11 @@ GET  /groceries
 POST /groceries
 GET  /wardrobe
 POST /wardrobe
+POST /wardrobe/upload-photo
 GET  /schedule
 POST /schedule
+POST /calendar/import-ics-url
+POST /calendar/import-ics-text
 GET  /receipts
 POST /receipts/from-text
 POST /receipts/upload-photo
@@ -98,6 +101,36 @@ Budget endpoints:
 - `GET /budget` shows current monthly budget settings.
 - `PUT /budget` updates food, snack, and eating-out budgets.
 - `GET /budget/status?month=2026-06` compares tracked spending against the monthly food budget.
+
+## Apple Calendar Import
+
+Jarvis can import Apple Calendar events from an `.ics` calendar URL.
+
+On iPhone or Mac:
+
+1. Open Apple Calendar.
+2. Choose the calendar you want Jarvis to read.
+3. Enable calendar sharing/publishing for that calendar.
+4. Copy the public/subscription `.ics` URL.
+5. Paste it into the Jarvis dashboard Schedule panel and press Import.
+
+The imported events are saved into the `schedule_items` table with `source = apple_calendar`, so the daily briefing can use them like manually added lectures or football sessions.
+
+## Wardrobe Photos
+
+The dashboard Wardrobe panel accepts an image file when adding a clothing item. Jarvis stores the image under:
+
+```text
+backend/uploads/wardrobe
+```
+
+The API serves stored images through:
+
+```text
+http://127.0.0.1:8000/uploads/...
+```
+
+This gives Jarvis a photo-backed wardrobe database for more accurate outfit planning later.
 
 ## Next Milestones
 

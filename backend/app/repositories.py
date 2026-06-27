@@ -56,13 +56,13 @@ def list_wardrobe_items() -> list[dict]:
         rows = connection.execute(
             """
             SELECT id, name, item_type, color, style, warmth, rain_ready,
-                   sport_ready, formality, status
+                   sport_ready, formality, status, image_path
             FROM wardrobe_items
             WHERE status = 'available'
             ORDER BY item_type, name
             """
         ).fetchall()
-    return [dict(row) for row in rows]
+    return [_with_image_url(dict(row)) for row in rows]
 
 
 def create_wardrobe_item(payload: dict) -> dict:
@@ -70,8 +70,8 @@ def create_wardrobe_item(payload: dict) -> dict:
         cursor = connection.execute(
             """
             INSERT INTO wardrobe_items
-            (name, item_type, color, style, warmth, rain_ready, sport_ready, formality)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (name, item_type, color, style, warmth, rain_ready, sport_ready, formality, image_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 payload["name"],
@@ -82,18 +82,19 @@ def create_wardrobe_item(payload: dict) -> dict:
                 int(payload.get("rain_ready", False)),
                 int(payload.get("sport_ready", False)),
                 payload.get("formality", "casual"),
+                payload.get("image_path"),
             ),
         )
         row = connection.execute(
             """
             SELECT id, name, item_type, color, style, warmth, rain_ready,
-                   sport_ready, formality, status
+                   sport_ready, formality, status, image_path
             FROM wardrobe_items
             WHERE id = ?
             """,
             (cursor.lastrowid,),
         ).fetchone()
-    return dict(row)
+    return _with_image_url(dict(row))
 
 
 def list_schedule_for_day(day: date) -> list[dict]:
@@ -101,7 +102,8 @@ def list_schedule_for_day(day: date) -> list[dict]:
     with get_connection() as connection:
         rows = connection.execute(
             """
-            SELECT id, title, starts_at, ends_at, location, activity_type, near_store
+            SELECT id, title, starts_at, ends_at, location, activity_type, near_store,
+                   external_id, source
             FROM schedule_items
             WHERE starts_at LIKE ?
             ORDER BY starts_at ASC
@@ -116,8 +118,8 @@ def create_schedule_item(payload: dict) -> dict:
         cursor = connection.execute(
             """
             INSERT INTO schedule_items
-            (title, starts_at, ends_at, location, activity_type, near_store)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (title, starts_at, ends_at, location, activity_type, near_store, external_id, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 payload["title"],
@@ -126,17 +128,60 @@ def create_schedule_item(payload: dict) -> dict:
                 payload.get("location"),
                 payload.get("activity_type", "lecture"),
                 payload.get("near_store"),
+                payload.get("external_id"),
+                payload.get("source"),
             ),
         )
         row = connection.execute(
             """
-            SELECT id, title, starts_at, ends_at, location, activity_type, near_store
+            SELECT id, title, starts_at, ends_at, location, activity_type, near_store,
+                   external_id, source
             FROM schedule_items
             WHERE id = ?
             """,
             (cursor.lastrowid,),
         ).fetchone()
     return dict(row)
+
+
+def import_schedule_events(events: list[dict]) -> dict:
+    imported = 0
+    skipped = 0
+    with get_connection() as connection:
+        for event in events:
+            existing = None
+            if event.get("external_id"):
+                existing = connection.execute(
+                    """
+                    SELECT id
+                    FROM schedule_items
+                    WHERE external_id = ? AND source = ?
+                    """,
+                    (event["external_id"], event.get("source", "apple_calendar")),
+                ).fetchone()
+            if existing:
+                skipped += 1
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO schedule_items
+                (title, starts_at, ends_at, location, activity_type, near_store, external_id, source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event["title"],
+                    event["starts_at"],
+                    event["ends_at"],
+                    event.get("location"),
+                    event.get("activity_type", "event"),
+                    event.get("near_store"),
+                    event.get("external_id"),
+                    event.get("source", "apple_calendar"),
+                ),
+            )
+            imported += 1
+    return {"imported": imported, "skipped": skipped, "source": "apple_calendar"}
 
 
 def create_receipt_from_items(
@@ -387,3 +432,9 @@ def _saving_suggestions(categories: list[dict]) -> list[str]:
     if not categories:
         suggestions.append("No receipt spending tracked for this month yet.")
     return suggestions
+
+
+def _with_image_url(item: dict) -> dict:
+    image_path = item.get("image_path")
+    item["image_url"] = f"/uploads/{image_path}" if image_path else None
+    return item

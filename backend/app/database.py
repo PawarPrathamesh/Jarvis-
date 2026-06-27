@@ -82,3 +82,17 @@ def initialize_database() -> None:
             );
             """
         )
+        _ensure_column(connection, "wardrobe_items", "image_path", "TEXT")
+        _ensure_column(connection, "schedule_items", "external_id", "TEXT")
+        _ensure_column(connection, "schedule_items", "source", "TEXT")
+
+
+def _ensure_column(
+    connection: sqlite3.Connection,
+    table: str,
+    column: str,
+    definition: str,
+) -> None:
+    columns = [row["name"] for row in connection.execute(f"PRAGMA table_info({table})")]
+    if column not in columns:
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")

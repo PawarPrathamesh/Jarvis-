@@ -1,11 +1,14 @@
 const API_BASE = "http://127.0.0.1:8000";
 
 async function request(path, options = {}) {
+  const isFormData = options.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers: isFormData
+      ? options.headers || {}
+      : {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
     ...options,
   });
 
@@ -43,6 +46,19 @@ export function addWardrobeItem(payload) {
   });
 }
 
+export function uploadWardrobePhoto(payload) {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value);
+    }
+  });
+  return request("/wardrobe/upload-photo", {
+    method: "POST",
+    body: formData,
+  });
+}
+
 export function getSchedule() {
   return request("/schedule");
 }
@@ -51,6 +67,13 @@ export function addScheduleItem(payload) {
   return request("/schedule", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function importCalendarUrl(url) {
+  return request("/calendar/import-ics-url", {
+    method: "POST",
+    body: JSON.stringify({ url }),
   });
 }
 
@@ -77,3 +100,4 @@ export function getOcrStatus() {
   return request("/ocr/status");
 }
 
+export { API_BASE };

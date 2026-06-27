@@ -17,6 +17,7 @@ import {
   addReceiptText,
   addScheduleItem,
   addWardrobeItem,
+  API_BASE,
   getBudgetStatus,
   getDailyBriefing,
   getExpenses,
@@ -25,6 +26,8 @@ import {
   getReceipts,
   getSchedule,
   getWardrobe,
+  importCalendarUrl,
+  uploadWardrobePhoto,
 } from "./api";
 import "./styles.css";
 
@@ -52,6 +55,7 @@ function App() {
   const [ocr, setOcr] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const [groceryForm, setGroceryForm] = useState({
     name: "",
@@ -70,6 +74,7 @@ function App() {
     rain_ready: false,
     sport_ready: false,
     formality: "casual",
+    file: null,
   });
   const [scheduleForm, setScheduleForm] = useState({
     title: "",
@@ -84,10 +89,12 @@ function App() {
     purchased_on: todayIso(),
     raw_text: "",
   });
+  const [calendarUrl, setCalendarUrl] = useState("");
 
   async function loadData() {
     setLoading(true);
     setError("");
+    setNotice("");
     try {
       const [
         briefingData,
@@ -148,11 +155,19 @@ function App() {
 
   async function handleWardrobeSubmit(event) {
     event.preventDefault();
-    await addWardrobeItem({
-      ...wardrobeForm,
-      warmth: Number(wardrobeForm.warmth),
-    });
-    setWardrobeForm({ ...wardrobeForm, name: "", color: "" });
+    if (wardrobeForm.file) {
+      await uploadWardrobePhoto({
+        ...wardrobeForm,
+        warmth: Number(wardrobeForm.warmth),
+      });
+    } else {
+      const { file, ...payload } = wardrobeForm;
+      await addWardrobeItem({
+        ...payload,
+        warmth: Number(payload.warmth),
+      });
+    }
+    setWardrobeForm({ ...wardrobeForm, name: "", color: "", file: null });
     loadData();
   }
 
@@ -173,6 +188,14 @@ function App() {
     loadData();
   }
 
+  async function handleCalendarImport(event) {
+    event.preventDefault();
+    const result = await importCalendarUrl(calendarUrl);
+    setNotice(`Calendar import: ${result.imported} added, ${result.skipped} skipped.`);
+    setCalendarUrl("");
+    loadData();
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -186,6 +209,7 @@ function App() {
       </header>
 
       {error && <div className="banner danger">Backend error: {error}</div>}
+      {notice && <div className="banner">{notice}</div>}
       {loading && <div className="banner">Loading Jarvis data...</div>}
 
       <section className="overview-grid">
@@ -288,12 +312,31 @@ function App() {
             <input type="number" min="1" max="5" value={wardrobeForm.warmth} onChange={(e) => setWardrobeForm({ ...wardrobeForm, warmth: e.target.value })} />
             <label className="check"><input type="checkbox" checked={wardrobeForm.rain_ready} onChange={(e) => setWardrobeForm({ ...wardrobeForm, rain_ready: e.target.checked })} /> Rain</label>
             <label className="check"><input type="checkbox" checked={wardrobeForm.sport_ready} onChange={(e) => setWardrobeForm({ ...wardrobeForm, sport_ready: e.target.checked })} /> Sport</label>
+            <input type="file" accept="image/*" onChange={(e) => setWardrobeForm({ ...wardrobeForm, file: e.target.files?.[0] || null })} />
             <button className="primary-button" type="submit"><Plus size={16} /> Add</button>
           </form>
-          <DataList rows={wardrobe.slice(0, 8)} render={(item) => `${item.name} - ${item.color} - ${item.style}`} />
+          <div className="wardrobe-gallery">
+            {wardrobe.slice(0, 8).map((item) => (
+              <article className="wardrobe-tile" key={item.id}>
+                {item.image_url ? (
+                  <img src={`${API_BASE}${item.image_url}`} alt={item.name} />
+                ) : (
+                  <div className="wardrobe-placeholder"><Shirt size={24} /></div>
+                )}
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>{item.color} - {item.style}</span>
+                </div>
+              </article>
+            ))}
+          </div>
         </Panel>
 
         <Panel title="Schedule" icon={<CalendarPlus size={18} />}>
+          <form onSubmit={handleCalendarImport} className="calendar-import">
+            <input required placeholder="Apple Calendar .ics URL" value={calendarUrl} onChange={(e) => setCalendarUrl(e.target.value)} />
+            <button className="primary-button" type="submit"><CalendarPlus size={16} /> Import</button>
+          </form>
           <form onSubmit={handleScheduleSubmit} className="form-grid compact">
             <input required placeholder="Title" value={scheduleForm.title} onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })} />
             <select value={scheduleForm.activity_type} onChange={(e) => setScheduleForm({ ...scheduleForm, activity_type: e.target.value })}>

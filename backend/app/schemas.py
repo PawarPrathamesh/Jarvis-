@@ -24,6 +24,8 @@ class WardrobeItemCreate(BaseModel):
     rain_ready: bool = False
     sport_ready: bool = False
     formality: str = "casual"
+    image_path: str | None = None
+    image_url: str | None = None
 
 
 class WardrobeItem(WardrobeItemCreate):
@@ -38,10 +40,26 @@ class ScheduleItemCreate(BaseModel):
     location: str | None = None
     activity_type: str = "lecture"
     near_store: str | None = None
+    external_id: str | None = None
+    source: str | None = None
 
 
 class ScheduleItem(ScheduleItemCreate):
     id: int
+
+
+class CalendarImportUrl(BaseModel):
+    url: str
+
+
+class CalendarImportText(BaseModel):
+    raw_ics: str
+
+
+class CalendarImportResult(BaseModel):
+    imported: int
+    skipped: int
+    source: str = "apple_calendar"
 
 
 class ReceiptTextCreate(BaseModel):
