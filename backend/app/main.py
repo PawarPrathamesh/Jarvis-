@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import RECEIPT_UPLOADS_DIR, UPLOADS_DIR, WARDROBE_UPLOADS_DIR
+from app.config import APPLE_CALDAV_PASSWORD, APPLE_CALDAV_USERNAME
 from app.database import initialize_database
 from app.repositories import (
     create_grocery,
@@ -30,6 +31,7 @@ from app.repositories import (
 from app.schemas import (
     BudgetSettings,
     BudgetStatus,
+    AppleCalendarStatus,
     CalendarImportResult,
     CalendarSource,
     CalendarSourceCreate,
@@ -189,6 +191,17 @@ def add_calendar_source(payload: CalendarSourceCreate) -> dict:
 @app.post("/calendar/sync", response_model=CalendarSyncResult)
 async def sync_calendar() -> dict:
     return await sync_calendar_sources()
+
+
+@app.get("/calendar/apple/status", response_model=AppleCalendarStatus)
+def apple_calendar_status() -> dict[str, str | bool]:
+    configured = bool(APPLE_CALDAV_USERNAME and APPLE_CALDAV_PASSWORD)
+    message = (
+        "Apple CalDAV credentials are configured."
+        if configured
+        else "Set APPLE_CALDAV_USERNAME and APPLE_CALDAV_PASSWORD in backend/.env."
+    )
+    return {"configured": configured, "message": message}
 
 
 @app.get("/receipts", response_model=list[Receipt])

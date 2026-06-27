@@ -81,6 +81,10 @@ export function getCalendarSources() {
   return request("/calendar/sources");
 }
 
+export function getAppleCalendarStatus() {
+  return request("/calendar/apple/status");
+}
+
 export function addCalendarSource(payload) {
   return request("/calendar/sources", {
     method: "POST",

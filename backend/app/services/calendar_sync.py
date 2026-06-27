@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import httpx
 
 from app.repositories import (
@@ -7,6 +5,7 @@ from app.repositories import (
     list_active_calendar_sources,
     mark_calendar_source_synced,
 )
+from app.services.apple_caldav import fetch_apple_calendar_events
 from app.services.calendar_import import parse_ics_events
 
 
@@ -15,8 +14,8 @@ async def sync_calendar_sources() -> dict:
     for source in list_active_calendar_sources():
         totals["sources"] += 1
         try:
-            raw_ics = await _read_source(source)
-            result = import_schedule_events(parse_ics_events(raw_ics))
+            events = await _read_source_events(source)
+            result = import_schedule_events(events)
             mark_calendar_source_synced(source["id"])
             totals["imported"] += result["imported"]
             totals["updated"] += result.get("updated", 0)
@@ -26,17 +25,22 @@ async def sync_calendar_sources() -> dict:
     return totals
 
 
-async def _read_source(source: dict) -> str:
+async def _read_source_events(source: dict) -> list[dict]:
     source_type = source["source_type"]
     value = source["value"]
-    if source_type == "file":
-        path = Path(value)
-        if not path.is_absolute():
-            path = Path.cwd().parent / value
-        return path.read_text(encoding="utf-8")
     if source_type == "url":
+        url = _calendar_url(value)
         async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.get(value)
+            response = await client.get(url)
             response.raise_for_status()
-            return response.text
+            return parse_ics_events(response.text)
+    if source_type == "apple_caldav":
+        calendar_url = value if value.startswith("http") else None
+        return await fetch_apple_calendar_events(calendar_url)
     raise ValueError(f"Unsupported calendar source type: {source_type}")
+
+
+def _calendar_url(value: str) -> str:
+    if value.startswith("webcal://"):
+        return f"https://{value.removeprefix('webcal://')}"
+    return value

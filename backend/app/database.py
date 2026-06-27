@@ -92,6 +92,13 @@ def initialize_database() -> None:
             );
             """
         )
+        connection.execute(
+            """
+            UPDATE calendar_sources
+            SET active = 0
+            WHERE source_type = 'file'
+            """
+        )
         _ensure_column(connection, "wardrobe_items", "image_path", "TEXT")
         _ensure_column(connection, "schedule_items", "external_id", "TEXT")
         _ensure_column(connection, "schedule_items", "source", "TEXT")

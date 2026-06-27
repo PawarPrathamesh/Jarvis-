@@ -19,6 +19,7 @@ import {
   addScheduleItem,
   addWardrobeItem,
   API_BASE,
+  getAppleCalendarStatus,
   getBudgetStatus,
   getCalendarSources,
   getDailyBriefing,
@@ -28,7 +29,6 @@ import {
   getReceipts,
   getSchedule,
   getWardrobe,
-  importCalendarUrl,
   processReceiptText,
   scanReceiptPhoto,
   syncCalendar,
@@ -56,6 +56,7 @@ function App() {
   const [schedule, setSchedule] = useState([]);
   const [receipts, setReceipts] = useState([]);
   const [calendarSources, setCalendarSources] = useState([]);
+  const [appleCalendar, setAppleCalendar] = useState(null);
   const [expenses, setExpenses] = useState(null);
   const [budget, setBudget] = useState(null);
   const [ocr, setOcr] = useState(null);
@@ -104,11 +105,8 @@ function App() {
     receipt_id: "",
     raw_text: "",
   });
-  const [calendarUrl, setCalendarUrl] = useState("");
   const [calendarSourceForm, setCalendarSourceForm] = useState({
     name: "Apple Calendar",
-    source_type: "file",
-    value: "",
   });
 
   async function loadData() {
@@ -123,6 +121,7 @@ function App() {
         scheduleData,
         receiptsData,
         calendarSourcesData,
+        appleCalendarData,
         expensesData,
         budgetData,
         ocrData,
@@ -133,6 +132,7 @@ function App() {
         getSchedule(),
         getReceipts(),
         getCalendarSources(),
+        getAppleCalendarStatus(),
         getExpenses(currentMonth()),
         getBudgetStatus(currentMonth()),
         getOcrStatus(),
@@ -144,6 +144,7 @@ function App() {
       setSchedule(scheduleData);
       setReceipts(receiptsData);
       setCalendarSources(calendarSourcesData);
+      setAppleCalendar(appleCalendarData);
       setExpenses(expensesData);
       setBudget(budgetData);
       setOcr(ocrData);
@@ -235,20 +236,15 @@ function App() {
     loadData();
   }
 
-  async function handleCalendarImport(event) {
-    event.preventDefault();
-    const result = await importCalendarUrl(calendarUrl);
-    setNotice(`Calendar import: ${result.imported} added, ${result.skipped} skipped.`);
-    setCalendarUrl("");
-    loadData();
-  }
-
   async function handleCalendarSourceSubmit(event) {
     event.preventDefault();
-    await addCalendarSource(calendarSourceForm);
+    await addCalendarSource({
+      name: calendarSourceForm.name,
+      source_type: "apple_caldav",
+      value: "default",
+    });
     const result = await syncCalendar();
     setNotice(`Calendar sync: ${result.imported} added, ${result.updated} updated, ${result.skipped} skipped.`);
-    setCalendarSourceForm({ ...calendarSourceForm, value: "" });
     loadData();
   }
 
@@ -395,23 +391,17 @@ function App() {
         </Panel>
 
         <Panel title="Schedule" icon={<CalendarPlus size={18} />}>
-          <form onSubmit={handleCalendarSourceSubmit} className="calendar-source-form">
-            <input required placeholder="Source name" value={calendarSourceForm.name} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, name: e.target.value })} />
-            <select value={calendarSourceForm.source_type} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, source_type: e.target.value })}>
-              <option value="file">Local .ics file</option>
-              <option value="url">Online .ics URL</option>
-            </select>
-            <input required placeholder={calendarSourceForm.source_type === "file" ? "calendar.ics or F:\\Projects\\jarvis\\calendar.ics" : "https://.../calendar.ics"} value={calendarSourceForm.value} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, value: e.target.value })} />
-            <button className="primary-button" type="submit"><CalendarPlus size={16} /> Save & Sync</button>
+          <form onSubmit={handleCalendarSourceSubmit} className="apple-calendar-form">
+            <input required placeholder="Apple Calendar source name" value={calendarSourceForm.name} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, name: e.target.value })} />
+            <button className="primary-button" type="submit"><CalendarPlus size={16} /> Link Apple</button>
           </form>
+          <p className={`config-note ${appleCalendar?.configured ? "good-text" : "warning-text"}`}>
+            {appleCalendar?.message || "Checking Apple Calendar configuration..."}
+          </p>
           <div className="source-row">
             <button className="secondary-button" type="button" onClick={handleCalendarSync}>Sync saved calendars</button>
             <span>{calendarSources.length} saved source(s)</span>
           </div>
-          <form onSubmit={handleCalendarImport} className="calendar-import">
-            <input required placeholder="Apple Calendar .ics URL" value={calendarUrl} onChange={(e) => setCalendarUrl(e.target.value)} />
-            <button className="primary-button" type="submit"><CalendarPlus size={16} /> Import</button>
-          </form>
           <form onSubmit={handleScheduleSubmit} className="form-grid compact">
             <input required placeholder="Title" value={scheduleForm.title} onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })} />
             <select value={scheduleForm.activity_type} onChange={(e) => setScheduleForm({ ...scheduleForm, activity_type: e.target.value })}>

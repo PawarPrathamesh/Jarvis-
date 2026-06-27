@@ -61,6 +61,10 @@ POST /wardrobe
 POST /wardrobe/upload-photo
 GET  /schedule
 POST /schedule
+GET  /calendar/apple/status
+GET  /calendar/sources
+POST /calendar/sources
+POST /calendar/sync
 POST /calendar/import-ics-url
 POST /calendar/import-ics-text
 GET  /receipts
@@ -110,28 +114,37 @@ Budget endpoints:
 - `PUT /budget` updates food, snack, and eating-out budgets.
 - `GET /budget/status?month=2026-06` compares tracked spending against the monthly food budget.
 
-## Apple Calendar Import
+## Apple Calendar Sync
 
-Jarvis can import Apple Calendar events from an `.ics` calendar URL or from a local `.ics` file.
+Jarvis syncs Apple Calendar through iCloud CalDAV. This is the backend route for private Apple Calendar data without relying on manually exported `.ics` files.
 
-On iPhone or Mac:
+Create a local backend config:
 
-1. Open Apple Calendar.
-2. Choose the calendar you want Jarvis to read.
-3. Enable calendar sharing/publishing for that calendar.
-4. Copy the public/subscription `.ics` URL.
-5. Paste it into the Jarvis dashboard Schedule panel and press Import.
+```powershell
+cd F:\Projects\jarvis\backend
+copy .env.example .env
+```
 
-The imported events are saved into the `schedule_items` table with `source = apple_calendar`, so the daily briefing can use them like manually added lectures or football sessions.
+Edit `backend/.env`:
 
-For dynamic sync:
+```text
+APPLE_CALDAV_USERNAME=your-apple-id@example.com
+APPLE_CALDAV_PASSWORD=your-app-specific-password
+APPLE_CALDAV_CALENDAR_NAME=
+APPLE_CALDAV_BASE_URL=https://caldav.icloud.com
+```
 
-1. Put the `.ics` file in `F:\Projects\jarvis`, or use the online `.ics` URL.
-2. In the dashboard Schedule panel, save it as a calendar source.
-3. Press `Sync saved calendars`.
-4. Jarvis will also sync saved calendar sources automatically when the daily briefing loads.
+Use an Apple app-specific password, not your normal Apple ID password. Create one from your Apple Account security settings.
 
-Local `.ics` files are ignored by Git because they may contain private schedule data.
+Then restart the FastAPI backend and open:
+
+```text
+GET http://127.0.0.1:8000/calendar/apple/status
+```
+
+The dashboard Schedule panel can save an Apple Calendar source and run `Sync saved calendars`. Jarvis also syncs saved calendar sources when the daily briefing loads.
+
+Local `.ics` files are ignored by Git because they may contain private schedule data, but the dashboard no longer uses local files for calendar sync.
 
 ## Wardrobe Photos
 

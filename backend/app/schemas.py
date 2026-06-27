@@ -54,7 +54,7 @@ class CalendarImportUrl(BaseModel):
 
 class CalendarSourceCreate(BaseModel):
     name: str
-    source_type: str = "file"
+    source_type: str = "apple_caldav"
     value: str
 
 
@@ -81,6 +81,11 @@ class CalendarSyncResult(BaseModel):
     updated: int
     skipped: int
     errors: list[str] = []
+
+
+class AppleCalendarStatus(BaseModel):
+    configured: bool
+    message: str
 
 
 class ReceiptTextCreate(BaseModel):

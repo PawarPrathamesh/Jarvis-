@@ -339,11 +339,25 @@ textarea {
   margin-bottom: 12px;
 }
 
+.apple-calendar-form,
 .calendar-source-form {
   display: grid;
-  grid-template-columns: 1fr 150px minmax(0, 1.6fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   margin-bottom: 10px;
+}
+
+.config-note {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.good-text {
+  color: #326b45;
+}
+
+.warning-text {
+  color: #94631d;
 }
 
 .source-row {
@@ -425,6 +439,7 @@ textarea {
   .form-grid,
   .form-row,
   .calendar-import,
+  .apple-calendar-form,
   .calendar-source-form,
   .wardrobe-gallery {
     grid-template-columns: 1fr;
