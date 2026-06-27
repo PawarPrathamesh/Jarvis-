@@ -10,3 +10,4 @@ backend/uploads/
 postman/
 frontend/node_modules/
 frontend/dist/
+*.ics

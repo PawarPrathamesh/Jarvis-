@@ -14,11 +14,13 @@ import {
 } from "lucide-react";
 import {
   addGrocery,
+  addCalendarSource,
   addReceiptText,
   addScheduleItem,
   addWardrobeItem,
   API_BASE,
   getBudgetStatus,
+  getCalendarSources,
   getDailyBriefing,
   getExpenses,
   getGroceries,
@@ -27,6 +29,7 @@ import {
   getSchedule,
   getWardrobe,
   importCalendarUrl,
+  syncCalendar,
   uploadWardrobePhoto,
 } from "./api";
 import "./styles.css";
@@ -50,6 +53,7 @@ function App() {
   const [wardrobe, setWardrobe] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [receipts, setReceipts] = useState([]);
+  const [calendarSources, setCalendarSources] = useState([]);
   const [expenses, setExpenses] = useState(null);
   const [budget, setBudget] = useState(null);
   const [ocr, setOcr] = useState(null);
@@ -90,6 +94,11 @@ function App() {
     raw_text: "",
   });
   const [calendarUrl, setCalendarUrl] = useState("");
+  const [calendarSourceForm, setCalendarSourceForm] = useState({
+    name: "Apple Calendar",
+    source_type: "file",
+    value: "",
+  });
 
   async function loadData() {
     setLoading(true);
@@ -102,6 +111,7 @@ function App() {
         wardrobeData,
         scheduleData,
         receiptsData,
+        calendarSourcesData,
         expensesData,
         budgetData,
         ocrData,
@@ -111,6 +121,7 @@ function App() {
         getWardrobe(),
         getSchedule(),
         getReceipts(),
+        getCalendarSources(),
         getExpenses(currentMonth()),
         getBudgetStatus(currentMonth()),
         getOcrStatus(),
@@ -121,6 +132,7 @@ function App() {
       setWardrobe(wardrobeData);
       setSchedule(scheduleData);
       setReceipts(receiptsData);
+      setCalendarSources(calendarSourcesData);
       setExpenses(expensesData);
       setBudget(budgetData);
       setOcr(ocrData);
@@ -193,6 +205,21 @@ function App() {
     const result = await importCalendarUrl(calendarUrl);
     setNotice(`Calendar import: ${result.imported} added, ${result.skipped} skipped.`);
     setCalendarUrl("");
+    loadData();
+  }
+
+  async function handleCalendarSourceSubmit(event) {
+    event.preventDefault();
+    await addCalendarSource(calendarSourceForm);
+    const result = await syncCalendar();
+    setNotice(`Calendar sync: ${result.imported} added, ${result.updated} updated, ${result.skipped} skipped.`);
+    setCalendarSourceForm({ ...calendarSourceForm, value: "" });
+    loadData();
+  }
+
+  async function handleCalendarSync() {
+    const result = await syncCalendar();
+    setNotice(`Calendar sync: ${result.imported} added, ${result.updated} updated, ${result.skipped} skipped.`);
     loadData();
   }
 
@@ -333,6 +360,19 @@ function App() {
         </Panel>
 
         <Panel title="Schedule" icon={<CalendarPlus size={18} />}>
+          <form onSubmit={handleCalendarSourceSubmit} className="calendar-source-form">
+            <input required placeholder="Source name" value={calendarSourceForm.name} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, name: e.target.value })} />
+            <select value={calendarSourceForm.source_type} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, source_type: e.target.value })}>
+              <option value="file">Local .ics file</option>
+              <option value="url">Online .ics URL</option>
+            </select>
+            <input required placeholder={calendarSourceForm.source_type === "file" ? "calendar.ics or F:\\Projects\\jarvis\\calendar.ics" : "https://.../calendar.ics"} value={calendarSourceForm.value} onChange={(e) => setCalendarSourceForm({ ...calendarSourceForm, value: e.target.value })} />
+            <button className="primary-button" type="submit"><CalendarPlus size={16} /> Save & Sync</button>
+          </form>
+          <div className="source-row">
+            <button className="secondary-button" type="button" onClick={handleCalendarSync}>Sync saved calendars</button>
+            <span>{calendarSources.length} saved source(s)</span>
+          </div>
           <form onSubmit={handleCalendarImport} className="calendar-import">
             <input required placeholder="Apple Calendar .ics URL" value={calendarUrl} onChange={(e) => setCalendarUrl(e.target.value)} />
             <button className="primary-button" type="submit"><CalendarPlus size={16} /> Import</button>

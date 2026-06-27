@@ -80,6 +80,16 @@ def initialize_database() -> None:
                 inventory_added INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (receipt_id) REFERENCES receipts(id)
             );
+
+            CREATE TABLE IF NOT EXISTS calendar_sources (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1,
+                last_synced_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
         _ensure_column(connection, "wardrobe_items", "image_path", "TEXT")

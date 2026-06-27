@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from app.database import get_connection
 from app.services.receipts import estimate_expiry
@@ -146,6 +146,7 @@ def create_schedule_item(payload: dict) -> dict:
 
 def import_schedule_events(events: list[dict]) -> dict:
     imported = 0
+    updated = 0
     skipped = 0
     with get_connection() as connection:
         for event in events:
@@ -160,7 +161,24 @@ def import_schedule_events(events: list[dict]) -> dict:
                     (event["external_id"], event.get("source", "apple_calendar")),
                 ).fetchone()
             if existing:
-                skipped += 1
+                connection.execute(
+                    """
+                    UPDATE schedule_items
+                    SET title = ?, starts_at = ?, ends_at = ?, location = ?,
+                        activity_type = ?, near_store = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        event["title"],
+                        event["starts_at"],
+                        event["ends_at"],
+                        event.get("location"),
+                        event.get("activity_type", "event"),
+                        event.get("near_store"),
+                        existing["id"],
+                    ),
+                )
+                updated += 1
                 continue
 
             connection.execute(
@@ -181,7 +199,85 @@ def import_schedule_events(events: list[dict]) -> dict:
                 ),
             )
             imported += 1
-    return {"imported": imported, "skipped": skipped, "source": "apple_calendar"}
+    return {"imported": imported, "updated": updated, "skipped": skipped, "source": "apple_calendar"}
+
+
+def list_calendar_sources() -> list[dict]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, name, source_type, value, active, last_synced_at
+            FROM calendar_sources
+            ORDER BY id DESC
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_active_calendar_sources() -> list[dict]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, name, source_type, value, active, last_synced_at
+            FROM calendar_sources
+            WHERE active = 1
+            ORDER BY id
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def create_calendar_source(payload: dict) -> dict:
+    with get_connection() as connection:
+        existing = connection.execute(
+            """
+            SELECT id
+            FROM calendar_sources
+            WHERE source_type = ? AND value = ?
+            """,
+            (payload.get("source_type", "file"), payload["value"]),
+        ).fetchone()
+        if existing:
+            connection.execute(
+                """
+                UPDATE calendar_sources
+                SET name = ?, active = 1
+                WHERE id = ?
+                """,
+                (payload["name"], existing["id"]),
+            )
+            source_id = existing["id"]
+        else:
+            cursor = connection.execute(
+                """
+                INSERT INTO calendar_sources (name, source_type, value)
+                VALUES (?, ?, ?)
+                """,
+                (payload["name"], payload.get("source_type", "file"), payload["value"]),
+            )
+            source_id = cursor.lastrowid
+
+        row = connection.execute(
+            """
+            SELECT id, name, source_type, value, active, last_synced_at
+            FROM calendar_sources
+            WHERE id = ?
+            """,
+            (source_id,),
+        ).fetchone()
+    return dict(row)
+
+
+def mark_calendar_source_synced(source_id: int) -> None:
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE calendar_sources
+            SET last_synced_at = ?
+            WHERE id = ?
+            """,
+            (datetime.now().isoformat(timespec="seconds"), source_id),
+        )
 
 
 def create_receipt_from_items(

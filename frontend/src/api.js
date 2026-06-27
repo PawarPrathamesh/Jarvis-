@@ -77,6 +77,23 @@ export function importCalendarUrl(url) {
   });
 }
 
+export function getCalendarSources() {
+  return request("/calendar/sources");
+}
+
+export function addCalendarSource(payload) {
+  return request("/calendar/sources", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function syncCalendar() {
+  return request("/calendar/sync", {
+    method: "POST",
+  });
+}
+
 export function getReceipts() {
   return request("/receipts");
 }

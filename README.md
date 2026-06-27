@@ -104,7 +104,7 @@ Budget endpoints:
 
 ## Apple Calendar Import
 
-Jarvis can import Apple Calendar events from an `.ics` calendar URL.
+Jarvis can import Apple Calendar events from an `.ics` calendar URL or from a local `.ics` file.
 
 On iPhone or Mac:
 
@@ -115,6 +115,15 @@ On iPhone or Mac:
 5. Paste it into the Jarvis dashboard Schedule panel and press Import.
 
 The imported events are saved into the `schedule_items` table with `source = apple_calendar`, so the daily briefing can use them like manually added lectures or football sessions.
+
+For dynamic sync:
+
+1. Put the `.ics` file in `F:\Projects\jarvis`, or use the online `.ics` URL.
+2. In the dashboard Schedule panel, save it as a calendar source.
+3. Press `Sync saved calendars`.
+4. Jarvis will also sync saved calendar sources automatically when the daily briefing loads.
+
+Local `.ics` files are ignored by Git because they may contain private schedule data.
 
 ## Wardrobe Photos
 

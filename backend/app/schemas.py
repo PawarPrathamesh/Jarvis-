@@ -52,14 +52,35 @@ class CalendarImportUrl(BaseModel):
     url: str
 
 
+class CalendarSourceCreate(BaseModel):
+    name: str
+    source_type: str = "file"
+    value: str
+
+
+class CalendarSource(CalendarSourceCreate):
+    id: int
+    active: bool
+    last_synced_at: str | None = None
+
+
 class CalendarImportText(BaseModel):
     raw_ics: str
 
 
 class CalendarImportResult(BaseModel):
     imported: int
+    updated: int = 0
     skipped: int
     source: str = "apple_calendar"
+
+
+class CalendarSyncResult(BaseModel):
+    sources: int
+    imported: int
+    updated: int
+    skipped: int
+    errors: list[str] = []
 
 
 class ReceiptTextCreate(BaseModel):

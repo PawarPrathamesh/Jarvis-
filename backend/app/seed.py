@@ -45,6 +45,7 @@ def seed() -> None:
         connection.execute("DELETE FROM groceries")
         connection.execute("DELETE FROM wardrobe_items")
         connection.execute("DELETE FROM schedule_items")
+        connection.execute("DELETE FROM calendar_sources")
         connection.execute("DELETE FROM preferences")
         connection.executemany(
             """

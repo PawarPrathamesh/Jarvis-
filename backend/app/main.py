@@ -11,11 +11,13 @@ from app.config import UPLOADS_DIR, WARDROBE_UPLOADS_DIR
 from app.database import initialize_database
 from app.repositories import (
     create_grocery,
+    create_calendar_source,
     create_receipt_from_items,
     create_schedule_item,
     create_wardrobe_item,
     get_budget_settings,
     import_schedule_events,
+    list_calendar_sources,
     list_receipts,
     list_groceries,
     list_schedule_for_day,
@@ -29,6 +31,9 @@ from app.schemas import (
     BudgetSettings,
     BudgetStatus,
     CalendarImportResult,
+    CalendarSource,
+    CalendarSourceCreate,
+    CalendarSyncResult,
     CalendarImportText,
     CalendarImportUrl,
     DailyBriefing,
@@ -45,6 +50,7 @@ from app.schemas import (
     WardrobeItemCreate,
 )
 from app.services.calendar_import import parse_ics_events
+from app.services.calendar_sync import sync_calendar_sources
 from app.services.planner import build_daily_briefing
 from app.services.ocr import OcrUnavailableError, extract_text_from_image, tesseract_available
 from app.services.receipts import parse_receipt_text
@@ -77,6 +83,7 @@ def health() -> dict[str, str]:
 @app.get("/daily-briefing", response_model=DailyBriefing)
 async def daily_briefing(day: date | None = None) -> DailyBriefing:
     target_day = day or date.today()
+    await sync_calendar_sources()
     weather = await get_dresden_weather()
     groceries = list_groceries()
     wardrobe = list_wardrobe_items()
@@ -167,6 +174,21 @@ async def import_apple_calendar_url(payload: CalendarImportUrl) -> dict:
 def import_apple_calendar_text(payload: CalendarImportText) -> dict:
     events = parse_ics_events(payload.raw_ics)
     return import_schedule_events(events)
+
+
+@app.get("/calendar/sources", response_model=list[CalendarSource])
+def calendar_sources() -> list[dict]:
+    return list_calendar_sources()
+
+
+@app.post("/calendar/sources", response_model=CalendarSource, status_code=201)
+def add_calendar_source(payload: CalendarSourceCreate) -> dict:
+    return create_calendar_source(payload.model_dump())
+
+
+@app.post("/calendar/sync", response_model=CalendarSyncResult)
+async def sync_calendar() -> dict:
+    return await sync_calendar_sources()
 
 
 @app.get("/receipts", response_model=list[Receipt])
