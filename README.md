@@ -44,7 +44,23 @@ GET  /wardrobe
 POST /wardrobe
 GET  /schedule
 POST /schedule
+GET  /receipts
+POST /receipts/from-text
+POST /receipts/upload-photo
+GET  /expenses/monthly
 ```
+
+Example receipt text payload:
+
+```json
+{
+  "store": "Aldi",
+  "purchased_on": "2026-06-27",
+  "raw_text": "Milk 1,09\nEggs 2,49\nChicken 4,99\nChocolate 1,59\nTOTAL 10,16"
+}
+```
+
+Jarvis will parse the line items, add food items to the grocery inventory, keep snack/household items out of groceries, and include everything in monthly spending summaries.
 
 ## Next Milestones
 

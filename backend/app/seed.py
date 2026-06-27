@@ -40,6 +40,8 @@ def seed() -> None:
     ]
 
     with get_connection() as connection:
+        connection.execute("DELETE FROM receipt_items")
+        connection.execute("DELETE FROM receipts")
         connection.execute("DELETE FROM groceries")
         connection.execute("DELETE FROM wardrobe_items")
         connection.execute("DELETE FROM schedule_items")
@@ -71,4 +73,3 @@ def seed() -> None:
 if __name__ == "__main__":
     seed()
     print("Seeded Jarvis sample data.")
-

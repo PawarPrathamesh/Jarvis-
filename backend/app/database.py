@@ -58,6 +58,27 @@ def initialize_database() -> None:
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS receipts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                store TEXT NOT NULL,
+                purchased_on TEXT NOT NULL,
+                total REAL NOT NULL DEFAULT 0,
+                image_path TEXT,
+                raw_text TEXT,
+                status TEXT NOT NULL DEFAULT 'processed',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS receipt_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                receipt_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                quantity TEXT NOT NULL DEFAULT '1 item',
+                price REAL NOT NULL DEFAULT 0,
+                inventory_added INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (receipt_id) REFERENCES receipts(id)
+            );
             """
         )
-

@@ -44,6 +44,46 @@ class ScheduleItem(ScheduleItemCreate):
     id: int
 
 
+class ReceiptTextCreate(BaseModel):
+    store: str
+    purchased_on: str
+    raw_text: str
+
+
+class ReceiptItem(BaseModel):
+    id: int
+    receipt_id: int
+    name: str
+    category: str
+    quantity: str
+    price: float
+    inventory_added: bool
+
+
+class Receipt(BaseModel):
+    id: int
+    store: str
+    purchased_on: str
+    total: float
+    image_path: str | None = None
+    raw_text: str | None = None
+    status: str
+    items: list[ReceiptItem] = []
+
+
+class ExpenseCategorySummary(BaseModel):
+    category: str
+    total: float
+    item_count: int
+
+
+class MonthlyExpenseSummary(BaseModel):
+    month: str
+    total: float
+    categories: list[ExpenseCategorySummary]
+    suggestions: list[str]
+
+
 class WeatherSummary(BaseModel):
     temperature_c: float
     feels_like_c: float | None = None
