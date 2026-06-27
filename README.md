@@ -12,6 +12,8 @@ Jarvis is a personal student-life assistant for daily planning. The first MVP is
 
 ## Run Locally
 
+Backend:
+
 ```powershell
 cd F:\Projects\jarvis\backend
 python -m venv .venv
@@ -31,6 +33,20 @@ API docs:
 
 ```text
 http://127.0.0.1:8000/docs
+```
+
+Frontend:
+
+```powershell
+cd F:\Projects\jarvis\frontend
+npm install
+npm run dev
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5173
 ```
 
 ## First API Endpoints

@@ -1,0 +1,378 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  AlertTriangle,
+  CalendarPlus,
+  CloudSun,
+  Euro,
+  Plus,
+  ReceiptText,
+  RefreshCw,
+  Shirt,
+  ShoppingBasket,
+  Utensils,
+} from "lucide-react";
+import {
+  addGrocery,
+  addReceiptText,
+  addScheduleItem,
+  addWardrobeItem,
+  getBudgetStatus,
+  getDailyBriefing,
+  getExpenses,
+  getGroceries,
+  getOcrStatus,
+  getReceipts,
+  getSchedule,
+  getWardrobe,
+} from "./api";
+import "./styles.css";
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function currentMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function dateTimeLocal(hour, minute) {
+  const day = todayIso();
+  return `${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function App() {
+  const [briefing, setBriefing] = useState(null);
+  const [groceries, setGroceries] = useState([]);
+  const [wardrobe, setWardrobe] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [receipts, setReceipts] = useState([]);
+  const [expenses, setExpenses] = useState(null);
+  const [budget, setBudget] = useState(null);
+  const [ocr, setOcr] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [groceryForm, setGroceryForm] = useState({
+    name: "",
+    category: "protein",
+    quantity: "1 item",
+    expires_on: "",
+    store: "Aldi",
+    price: "",
+  });
+  const [wardrobeForm, setWardrobeForm] = useState({
+    name: "",
+    item_type: "top",
+    color: "",
+    style: "casual",
+    warmth: 1,
+    rain_ready: false,
+    sport_ready: false,
+    formality: "casual",
+  });
+  const [scheduleForm, setScheduleForm] = useState({
+    title: "",
+    starts_at: dateTimeLocal(10, 0),
+    ends_at: dateTimeLocal(12, 0),
+    location: "TU Dresden",
+    activity_type: "lecture",
+    near_store: "",
+  });
+  const [receiptForm, setReceiptForm] = useState({
+    store: "Aldi",
+    purchased_on: todayIso(),
+    raw_text: "",
+  });
+
+  async function loadData() {
+    setLoading(true);
+    setError("");
+    try {
+      const [
+        briefingData,
+        groceriesData,
+        wardrobeData,
+        scheduleData,
+        receiptsData,
+        expensesData,
+        budgetData,
+        ocrData,
+      ] = await Promise.all([
+        getDailyBriefing(),
+        getGroceries(),
+        getWardrobe(),
+        getSchedule(),
+        getReceipts(),
+        getExpenses(currentMonth()),
+        getBudgetStatus(currentMonth()),
+        getOcrStatus(),
+      ]);
+
+      setBriefing(briefingData);
+      setGroceries(groceriesData);
+      setWardrobe(wardrobeData);
+      setSchedule(scheduleData);
+      setReceipts(receiptsData);
+      setExpenses(expensesData);
+      setBudget(budgetData);
+      setOcr(ocrData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const budgetTone = useMemo(() => {
+    if (!budget) return "neutral";
+    if (budget.status === "over_budget") return "danger";
+    if (budget.status === "near_limit") return "warning";
+    return "good";
+  }, [budget]);
+
+  async function handleGrocerySubmit(event) {
+    event.preventDefault();
+    await addGrocery({
+      ...groceryForm,
+      expires_on: groceryForm.expires_on || null,
+      price: groceryForm.price ? Number(groceryForm.price) : null,
+    });
+    setGroceryForm({ ...groceryForm, name: "", price: "", expires_on: "" });
+    loadData();
+  }
+
+  async function handleWardrobeSubmit(event) {
+    event.preventDefault();
+    await addWardrobeItem({
+      ...wardrobeForm,
+      warmth: Number(wardrobeForm.warmth),
+    });
+    setWardrobeForm({ ...wardrobeForm, name: "", color: "" });
+    loadData();
+  }
+
+  async function handleScheduleSubmit(event) {
+    event.preventDefault();
+    await addScheduleItem({
+      ...scheduleForm,
+      near_store: scheduleForm.near_store || null,
+    });
+    setScheduleForm({ ...scheduleForm, title: "", near_store: "" });
+    loadData();
+  }
+
+  async function handleReceiptSubmit(event) {
+    event.preventDefault();
+    await addReceiptText(receiptForm);
+    setReceiptForm({ ...receiptForm, raw_text: "" });
+    loadData();
+  }
+
+  return (
+    <main className="app-shell">
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Student Life Agent</p>
+          <h1>Jarvis</h1>
+        </div>
+        <button className="icon-button" onClick={loadData} title="Refresh">
+          <RefreshCw size={18} />
+        </button>
+      </header>
+
+      {error && <div className="banner danger">Backend error: {error}</div>}
+      {loading && <div className="banner">Loading Jarvis data...</div>}
+
+      <section className="overview-grid">
+        <Panel title="Today" icon={<CloudSun size={18} />}>
+          {briefing && (
+            <>
+              <p className="lead">{briefing.greeting}</p>
+              <div className="weather-line">
+                <strong>{briefing.weather.temperature_c.toFixed(1)}C</strong>
+                <span>{briefing.weather.condition}</span>
+                <span>{briefing.weather.precipitation_probability}% rain</span>
+                <span>{briefing.weather.wind_kmh.toFixed(1)} km/h wind</span>
+              </div>
+              <List items={briefing.schedule} empty="No schedule items yet." />
+            </>
+          )}
+        </Panel>
+
+        <Panel title="Outfit" icon={<Shirt size={18} />}>
+          <List items={briefing?.outfit || []} empty="Add wardrobe items to unlock outfit planning." />
+        </Panel>
+
+        <Panel title="Meals" icon={<Utensils size={18} />}>
+          {briefing && (
+            <div className="meal-grid">
+              {Object.entries(briefing.meals).map(([meal, value]) => (
+                <div className="meal-row" key={meal}>
+                  <span>{meal}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Alerts" icon={<AlertTriangle size={18} />}>
+          <List items={briefing?.alerts || []} empty="No alerts for now." />
+        </Panel>
+      </section>
+
+      <section className="metrics-row">
+        <Metric
+          title="Monthly Spend"
+          value={expenses ? `${expenses.total.toFixed(2)} EUR` : "-"}
+          detail={expenses?.suggestions?.[0] || "No receipt spending tracked."}
+          icon={<Euro size={18} />}
+        />
+        <Metric
+          title="Budget"
+          value={budget ? `${budget.remaining.toFixed(2)} EUR left` : "-"}
+          detail={budget?.message || "Budget status unavailable."}
+          icon={<ShoppingBasket size={18} />}
+          tone={budgetTone}
+        />
+        <Metric
+          title="OCR"
+          value={ocr?.available ? "Ready" : "Waiting"}
+          detail={ocr?.message || "Checking OCR status."}
+          icon={<ReceiptText size={18} />}
+        />
+      </section>
+
+      <section className="work-grid">
+        <Panel title="Groceries" icon={<ShoppingBasket size={18} />}>
+          <form onSubmit={handleGrocerySubmit} className="form-grid compact">
+            <input required placeholder="Name" value={groceryForm.name} onChange={(e) => setGroceryForm({ ...groceryForm, name: e.target.value })} />
+            <select value={groceryForm.category} onChange={(e) => setGroceryForm({ ...groceryForm, category: e.target.value })}>
+              <option>protein</option>
+              <option>dairy</option>
+              <option>carb</option>
+              <option>vegetable</option>
+              <option>fruit</option>
+              <option>snack</option>
+              <option>other</option>
+            </select>
+            <input required placeholder="Quantity" value={groceryForm.quantity} onChange={(e) => setGroceryForm({ ...groceryForm, quantity: e.target.value })} />
+            <input type="date" value={groceryForm.expires_on} onChange={(e) => setGroceryForm({ ...groceryForm, expires_on: e.target.value })} />
+            <input placeholder="Store" value={groceryForm.store} onChange={(e) => setGroceryForm({ ...groceryForm, store: e.target.value })} />
+            <input type="number" step="0.01" placeholder="Price" value={groceryForm.price} onChange={(e) => setGroceryForm({ ...groceryForm, price: e.target.value })} />
+            <button className="primary-button" type="submit"><Plus size={16} /> Add</button>
+          </form>
+          <DataList
+            rows={groceries.slice(0, 8)}
+            render={(item) => `${item.name} - ${item.quantity}${item.expires_on ? ` - expires ${item.expires_on}` : ""}`}
+          />
+        </Panel>
+
+        <Panel title="Wardrobe" icon={<Shirt size={18} />}>
+          <form onSubmit={handleWardrobeSubmit} className="form-grid compact">
+            <input required placeholder="Item name" value={wardrobeForm.name} onChange={(e) => setWardrobeForm({ ...wardrobeForm, name: e.target.value })} />
+            <select value={wardrobeForm.item_type} onChange={(e) => setWardrobeForm({ ...wardrobeForm, item_type: e.target.value })}>
+              <option>jacket</option>
+              <option>top</option>
+              <option>bottom</option>
+              <option>shoes</option>
+              <option>sport</option>
+            </select>
+            <input required placeholder="Color" value={wardrobeForm.color} onChange={(e) => setWardrobeForm({ ...wardrobeForm, color: e.target.value })} />
+            <input placeholder="Style" value={wardrobeForm.style} onChange={(e) => setWardrobeForm({ ...wardrobeForm, style: e.target.value })} />
+            <input type="number" min="1" max="5" value={wardrobeForm.warmth} onChange={(e) => setWardrobeForm({ ...wardrobeForm, warmth: e.target.value })} />
+            <label className="check"><input type="checkbox" checked={wardrobeForm.rain_ready} onChange={(e) => setWardrobeForm({ ...wardrobeForm, rain_ready: e.target.checked })} /> Rain</label>
+            <label className="check"><input type="checkbox" checked={wardrobeForm.sport_ready} onChange={(e) => setWardrobeForm({ ...wardrobeForm, sport_ready: e.target.checked })} /> Sport</label>
+            <button className="primary-button" type="submit"><Plus size={16} /> Add</button>
+          </form>
+          <DataList rows={wardrobe.slice(0, 8)} render={(item) => `${item.name} - ${item.color} - ${item.style}`} />
+        </Panel>
+
+        <Panel title="Schedule" icon={<CalendarPlus size={18} />}>
+          <form onSubmit={handleScheduleSubmit} className="form-grid compact">
+            <input required placeholder="Title" value={scheduleForm.title} onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })} />
+            <select value={scheduleForm.activity_type} onChange={(e) => setScheduleForm({ ...scheduleForm, activity_type: e.target.value })}>
+              <option>lecture</option>
+              <option>football</option>
+              <option>gym</option>
+              <option>study</option>
+              <option>errand</option>
+            </select>
+            <input type="datetime-local" value={scheduleForm.starts_at} onChange={(e) => setScheduleForm({ ...scheduleForm, starts_at: e.target.value })} />
+            <input type="datetime-local" value={scheduleForm.ends_at} onChange={(e) => setScheduleForm({ ...scheduleForm, ends_at: e.target.value })} />
+            <input placeholder="Location" value={scheduleForm.location} onChange={(e) => setScheduleForm({ ...scheduleForm, location: e.target.value })} />
+            <input placeholder="Nearby store" value={scheduleForm.near_store} onChange={(e) => setScheduleForm({ ...scheduleForm, near_store: e.target.value })} />
+            <button className="primary-button" type="submit"><Plus size={16} /> Add</button>
+          </form>
+          <DataList rows={schedule.slice(0, 8)} render={(item) => `${item.title} - ${item.starts_at.slice(11, 16)}-${item.ends_at.slice(11, 16)}`} />
+        </Panel>
+
+        <Panel title="Receipt Text" icon={<ReceiptText size={18} />}>
+          <form onSubmit={handleReceiptSubmit} className="receipt-form">
+            <div className="form-row">
+              <input required placeholder="Store" value={receiptForm.store} onChange={(e) => setReceiptForm({ ...receiptForm, store: e.target.value })} />
+              <input type="date" value={receiptForm.purchased_on} onChange={(e) => setReceiptForm({ ...receiptForm, purchased_on: e.target.value })} />
+            </div>
+            <textarea required placeholder={"Milk 1,09\nEggs 2,49\nTOTAL 3,58"} value={receiptForm.raw_text} onChange={(e) => setReceiptForm({ ...receiptForm, raw_text: e.target.value })} />
+            <button className="primary-button" type="submit"><ReceiptText size={16} /> Process</button>
+          </form>
+          <DataList rows={receipts.slice(0, 6)} render={(item) => `${item.store} - ${item.total.toFixed(2)} EUR - ${item.status}`} />
+        </Panel>
+      </section>
+    </main>
+  );
+}
+
+function Panel({ title, icon, children }) {
+  return (
+    <section className="panel">
+      <div className="panel-title">
+        {icon}
+        <h2>{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Metric({ title, value, detail, icon, tone = "neutral" }) {
+  return (
+    <section className={`metric ${tone}`}>
+      <div className="metric-head">
+        {icon}
+        <span>{title}</span>
+      </div>
+      <strong>{value}</strong>
+      <p>{detail}</p>
+    </section>
+  );
+}
+
+function List({ items, empty }) {
+  if (!items.length) return <p className="muted">{empty}</p>;
+  return (
+    <ul className="clean-list">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+function DataList({ rows, render }) {
+  if (!rows.length) return <p className="muted">No entries yet.</p>;
+  return (
+    <ul className="data-list">
+      {rows.map((row) => (
+        <li key={row.id}>{render(row)}</li>
+      ))}
+    </ul>
+  );
+}
+
+createRoot(document.getElementById("root")).render(<App />);
