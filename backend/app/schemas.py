@@ -114,6 +114,7 @@ class Receipt(BaseModel):
     purchased_on: str
     total: float
     image_path: str | None = None
+    image_url: str | None = None
     raw_text: str | None = None
     status: str
     items: list[ReceiptItem] = []

@@ -105,6 +105,24 @@ export function addReceiptText(payload) {
   });
 }
 
+export function scanReceiptPhoto(payload) {
+  const formData = new FormData();
+  formData.append("store", payload.store);
+  formData.append("purchased_on", payload.purchased_on);
+  formData.append("file", payload.file);
+  return request("/receipts/scan-photo", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function processReceiptText(receiptId, rawText) {
+  return request(`/receipts/${receiptId}/process-text`, {
+    method: "POST",
+    body: JSON.stringify({ raw_text: rawText }),
+  });
+}
+
 export function getExpenses(month) {
   return request(`/expenses/monthly${month ? `?month=${month}` : ""}`);
 }

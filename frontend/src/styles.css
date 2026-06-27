@@ -290,6 +290,46 @@ textarea {
 .receipt-form {
   display: grid;
   gap: 10px;
+  margin-bottom: 12px;
+}
+
+.receipt-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.receipt-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #ded9cf;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fbfaf5;
+}
+
+.receipt-row img {
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.receipt-row strong,
+.receipt-row span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.receipt-row span {
+  margin-top: 4px;
+  color: #68746b;
+  font-size: 0.88rem;
 }
 
 .calendar-import {

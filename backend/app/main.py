@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.config import UPLOADS_DIR, WARDROBE_UPLOADS_DIR
+from app.config import RECEIPT_UPLOADS_DIR, UPLOADS_DIR, WARDROBE_UPLOADS_DIR
 from app.database import initialize_database
 from app.repositories import (
     create_grocery,
@@ -210,33 +210,35 @@ def add_receipt_from_text(payload: ReceiptTextCreate) -> dict:
 
 @app.post("/receipts/upload-photo", response_model=Receipt, status_code=201)
 async def upload_receipt_photo(
-    store: str,
-    purchased_on: date,
+    store: str = Form(...),
+    purchased_on: date = Form(...),
     file: UploadFile = File(...),
 ) -> dict:
-    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    RECEIPT_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     safe_name = Path(file.filename or "receipt.jpg").name
-    target = UPLOADS_DIR / f"{purchased_on.isoformat()}-{uuid4().hex[:8]}-{safe_name}"
+    relative_path = Path("receipts") / f"{purchased_on.isoformat()}-{uuid4().hex[:8]}-{safe_name}"
+    target = UPLOADS_DIR / relative_path
     target.write_bytes(await file.read())
     return create_receipt_from_items(
         store=store,
         purchased_on=purchased_on,
         raw_text=None,
         items=[],
-        image_path=str(target),
+        image_path=relative_path.as_posix(),
         status="uploaded_needs_ocr",
     )
 
 
 @app.post("/receipts/scan-photo", response_model=Receipt, status_code=201)
 async def scan_receipt_photo(
-    store: str,
-    purchased_on: date,
+    store: str = Form(...),
+    purchased_on: date = Form(...),
     file: UploadFile = File(...),
 ) -> dict:
-    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    RECEIPT_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     safe_name = Path(file.filename or "receipt.jpg").name
-    target = UPLOADS_DIR / f"{purchased_on.isoformat()}-{uuid4().hex[:8]}-{safe_name}"
+    relative_path = Path("receipts") / f"{purchased_on.isoformat()}-{uuid4().hex[:8]}-{safe_name}"
+    target = UPLOADS_DIR / relative_path
     target.write_bytes(await file.read())
 
     try:
@@ -247,7 +249,7 @@ async def scan_receipt_photo(
             purchased_on=purchased_on,
             raw_text=str(exc),
             items=[],
-            image_path=str(target),
+            image_path=relative_path.as_posix(),
             status="uploaded_needs_ocr",
         )
 
@@ -257,7 +259,7 @@ async def scan_receipt_photo(
         purchased_on=purchased_on,
         raw_text=raw_text,
         items=items,
-        image_path=str(target),
+        image_path=relative_path.as_posix(),
     )
 
 

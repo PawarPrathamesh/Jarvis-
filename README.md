@@ -96,6 +96,14 @@ Receipt photo workflow:
 
 If Tesseract is not installed or not on PATH, Jarvis still stores the receipt photo safely and waits for manual text or future OCR setup.
 
+The dashboard Receipt panel supports this same flow:
+
+1. Upload a receipt photo.
+2. Jarvis attempts OCR if Tesseract is installed.
+3. If OCR is unavailable, the receipt is saved as `uploaded_needs_ocr`.
+4. Select that receipt, paste corrected text, and apply it.
+5. Jarvis updates groceries and monthly expenses.
+
 Budget endpoints:
 
 - `GET /budget` shows current monthly budget settings.

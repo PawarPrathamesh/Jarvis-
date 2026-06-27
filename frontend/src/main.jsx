@@ -29,6 +29,8 @@ import {
   getSchedule,
   getWardrobe,
   importCalendarUrl,
+  processReceiptText,
+  scanReceiptPhoto,
   syncCalendar,
   uploadWardrobePhoto,
 } from "./api";
@@ -91,6 +93,15 @@ function App() {
   const [receiptForm, setReceiptForm] = useState({
     store: "Aldi",
     purchased_on: todayIso(),
+    raw_text: "",
+  });
+  const [receiptPhotoForm, setReceiptPhotoForm] = useState({
+    store: "Aldi",
+    purchased_on: todayIso(),
+    file: null,
+  });
+  const [receiptCorrectionForm, setReceiptCorrectionForm] = useState({
+    receipt_id: "",
     raw_text: "",
   });
   const [calendarUrl, setCalendarUrl] = useState("");
@@ -197,6 +208,30 @@ function App() {
     event.preventDefault();
     await addReceiptText(receiptForm);
     setReceiptForm({ ...receiptForm, raw_text: "" });
+    loadData();
+  }
+
+  async function handleReceiptPhotoSubmit(event) {
+    event.preventDefault();
+    if (!receiptPhotoForm.file) {
+      setError("Choose a receipt photo first.");
+      return;
+    }
+    const receipt = await scanReceiptPhoto(receiptPhotoForm);
+    setReceiptPhotoForm({ ...receiptPhotoForm, file: null });
+    setNotice(
+      receipt.status === "uploaded_needs_ocr"
+        ? "Receipt photo saved. OCR is waiting for Tesseract, so paste corrected text below."
+        : `Receipt scanned: ${receipt.items.length} item(s) found.`
+    );
+    loadData();
+  }
+
+  async function handleReceiptCorrectionSubmit(event) {
+    event.preventDefault();
+    await processReceiptText(receiptCorrectionForm.receipt_id, receiptCorrectionForm.raw_text);
+    setReceiptCorrectionForm({ receipt_id: "", raw_text: "" });
+    setNotice("Receipt text processed and groceries/expenses updated.");
     loadData();
   }
 
@@ -396,6 +431,16 @@ function App() {
         </Panel>
 
         <Panel title="Receipt Text" icon={<ReceiptText size={18} />}>
+          <form onSubmit={handleReceiptPhotoSubmit} className="receipt-form">
+            <div className="form-row">
+              <input required placeholder="Store" value={receiptPhotoForm.store} onChange={(e) => setReceiptPhotoForm({ ...receiptPhotoForm, store: e.target.value })} />
+              <input type="date" value={receiptPhotoForm.purchased_on} onChange={(e) => setReceiptPhotoForm({ ...receiptPhotoForm, purchased_on: e.target.value })} />
+            </div>
+            <div className="form-row">
+              <input type="file" accept="image/*" onChange={(e) => setReceiptPhotoForm({ ...receiptPhotoForm, file: e.target.files?.[0] || null })} />
+              <button className="primary-button" type="submit"><ReceiptText size={16} /> Scan Photo</button>
+            </div>
+          </form>
           <form onSubmit={handleReceiptSubmit} className="receipt-form">
             <div className="form-row">
               <input required placeholder="Store" value={receiptForm.store} onChange={(e) => setReceiptForm({ ...receiptForm, store: e.target.value })} />
@@ -404,7 +449,31 @@ function App() {
             <textarea required placeholder={"Milk 1,09\nEggs 2,49\nTOTAL 3,58"} value={receiptForm.raw_text} onChange={(e) => setReceiptForm({ ...receiptForm, raw_text: e.target.value })} />
             <button className="primary-button" type="submit"><ReceiptText size={16} /> Process</button>
           </form>
-          <DataList rows={receipts.slice(0, 6)} render={(item) => `${item.store} - ${item.total.toFixed(2)} EUR - ${item.status}`} />
+          <form onSubmit={handleReceiptCorrectionSubmit} className="receipt-form">
+            <div className="form-row">
+              <select required value={receiptCorrectionForm.receipt_id} onChange={(e) => setReceiptCorrectionForm({ ...receiptCorrectionForm, receipt_id: e.target.value })}>
+                <option value="">Receipt to correct</option>
+                {receipts.map((receipt) => (
+                  <option key={receipt.id} value={receipt.id}>
+                    #{receipt.id} {receipt.store} - {receipt.status}
+                  </option>
+                ))}
+              </select>
+              <button className="secondary-button" type="submit">Apply Text</button>
+            </div>
+            <textarea required placeholder={"Paste OCR/corrected receipt text here"} value={receiptCorrectionForm.raw_text} onChange={(e) => setReceiptCorrectionForm({ ...receiptCorrectionForm, raw_text: e.target.value })} />
+          </form>
+          <div className="receipt-list">
+            {receipts.slice(0, 6).map((item) => (
+              <article className="receipt-row" key={item.id}>
+                {item.image_url && <img src={`${API_BASE}${item.image_url}`} alt={`${item.store} receipt`} />}
+                <div>
+                  <strong>{item.store} - {item.total.toFixed(2)} EUR</strong>
+                  <span>{item.purchased_on} - {item.status} - {item.items.length} item(s)</span>
+                </div>
+              </article>
+            ))}
+          </div>
         </Panel>
       </section>
     </main>

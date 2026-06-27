@@ -423,6 +423,7 @@ def get_receipt(receipt_id: int) -> dict:
         ).fetchall()
     result = dict(receipt)
     result["items"] = [dict(item) for item in items]
+    result["image_url"] = _receipt_image_url(result.get("image_path"))
     return result
 
 
@@ -534,3 +535,12 @@ def _with_image_url(item: dict) -> dict:
     image_path = item.get("image_path")
     item["image_url"] = f"/uploads/{image_path}" if image_path else None
     return item
+
+
+def _receipt_image_url(image_path: str | None) -> str | None:
+    if not image_path:
+        return None
+    normalized = image_path.replace("\\", "/")
+    if "/uploads/" in normalized:
+        return f"/uploads/{normalized.split('/uploads/', 1)[1]}"
+    return f"/uploads/{normalized}"
