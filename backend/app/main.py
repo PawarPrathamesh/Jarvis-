@@ -16,6 +16,11 @@ from app.repositories import (
     create_receipt_from_items,
     create_schedule_item,
     create_wardrobe_item,
+    delete_calendar_source,
+    delete_grocery,
+    delete_receipt,
+    delete_schedule_item,
+    delete_wardrobe_item,
     get_budget_settings,
     import_schedule_events,
     list_calendar_sources,
@@ -107,6 +112,14 @@ def add_grocery(payload: GroceryCreate) -> dict:
     return create_grocery(payload.model_dump())
 
 
+@app.delete("/groceries/{grocery_id}", status_code=204)
+def remove_grocery(grocery_id: int) -> None:
+    try:
+        delete_grocery(grocery_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Grocery not found") from exc
+
+
 @app.get("/wardrobe", response_model=list[WardrobeItem])
 def wardrobe() -> list[dict]:
     return list_wardrobe_items()
@@ -115,6 +128,14 @@ def wardrobe() -> list[dict]:
 @app.post("/wardrobe", response_model=WardrobeItem, status_code=201)
 def add_wardrobe_item(payload: WardrobeItemCreate) -> dict:
     return create_wardrobe_item(payload.model_dump())
+
+
+@app.delete("/wardrobe/{item_id}", status_code=204)
+def remove_wardrobe_item(item_id: int) -> None:
+    try:
+        delete_wardrobe_item(item_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Wardrobe item not found") from exc
 
 
 @app.post("/wardrobe/upload-photo", response_model=WardrobeItem, status_code=201)
@@ -159,6 +180,14 @@ def add_schedule_item(payload: ScheduleItemCreate) -> dict:
     return create_schedule_item(payload.model_dump())
 
 
+@app.delete("/schedule/{schedule_id}", status_code=204)
+def remove_schedule_item(schedule_id: int) -> None:
+    try:
+        delete_schedule_item(schedule_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Schedule item not found") from exc
+
+
 @app.post("/calendar/import-ics-url", response_model=CalendarImportResult)
 async def import_apple_calendar_url(payload: CalendarImportUrl) -> dict:
     try:
@@ -188,6 +217,14 @@ def add_calendar_source(payload: CalendarSourceCreate) -> dict:
     return create_calendar_source(payload.model_dump())
 
 
+@app.delete("/calendar/sources/{source_id}", status_code=204)
+def remove_calendar_source(source_id: int) -> None:
+    try:
+        delete_calendar_source(source_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Calendar source not found") from exc
+
+
 @app.post("/calendar/sync", response_model=CalendarSyncResult)
 async def sync_calendar() -> dict:
     return await sync_calendar_sources()
@@ -207,6 +244,14 @@ def apple_calendar_status() -> dict[str, str | bool]:
 @app.get("/receipts", response_model=list[Receipt])
 def receipts() -> list[dict]:
     return list_receipts()
+
+
+@app.delete("/receipts/{receipt_id}", status_code=204)
+def remove_receipt(receipt_id: int) -> None:
+    try:
+        delete_receipt(receipt_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Receipt not found") from exc
 
 
 @app.post("/receipts/from-text", response_model=Receipt, status_code=201)

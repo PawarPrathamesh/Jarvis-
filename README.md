@@ -162,6 +162,12 @@ python -m app.seed
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+If `python` is not available on PATH, use the interpreter inside `.venv` once it exists:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
 Open:
 
 ```text
@@ -241,24 +247,29 @@ GET  /daily-briefing
 
 GET  /groceries
 POST /groceries
+DELETE /groceries/{grocery_id}
 
 GET  /wardrobe
 POST /wardrobe
 POST /wardrobe/upload-photo
+DELETE /wardrobe/{item_id}
 
 GET  /schedule
 POST /schedule
+DELETE /schedule/{schedule_id}
 
 GET  /calendar/apple/status
 GET  /calendar/sources
 POST /calendar/sources
 POST /calendar/sync
+DELETE /calendar/sources/{source_id}
 
 GET  /receipts
 POST /receipts/from-text
 POST /receipts/upload-photo
 POST /receipts/scan-photo
 POST /receipts/{receipt_id}/process-text
+DELETE /receipts/{receipt_id}
 
 GET  /expenses/monthly
 

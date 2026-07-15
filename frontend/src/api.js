@@ -17,6 +17,10 @@ async function request(path, options = {}) {
     throw new Error(message || `Request failed: ${response.status}`);
   }
 
+  if (response.status === 204) {
+    return null;
+  }
+
   return response.json();
 }
 
@@ -35,6 +39,12 @@ export function addGrocery(payload) {
   });
 }
 
+export function deleteGrocery(id) {
+  return request(`/groceries/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function getWardrobe() {
   return request("/wardrobe");
 }
@@ -43,6 +53,12 @@ export function addWardrobeItem(payload) {
   return request("/wardrobe", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function deleteWardrobeItem(id) {
+  return request(`/wardrobe/${id}`, {
+    method: "DELETE",
   });
 }
 
@@ -70,6 +86,12 @@ export function addScheduleItem(payload) {
   });
 }
 
+export function deleteScheduleItem(id) {
+  return request(`/schedule/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function importCalendarUrl(url) {
   return request("/calendar/import-ics-url", {
     method: "POST",
@@ -92,6 +114,12 @@ export function addCalendarSource(payload) {
   });
 }
 
+export function deleteCalendarSource(id) {
+  return request(`/calendar/sources/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function syncCalendar() {
   return request("/calendar/sync", {
     method: "POST",
@@ -100,6 +128,12 @@ export function syncCalendar() {
 
 export function getReceipts() {
   return request("/receipts");
+}
+
+export function deleteReceipt(id) {
+  return request(`/receipts/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export function addReceiptText(payload) {

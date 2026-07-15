@@ -19,6 +19,11 @@ import {
   addScheduleItem,
   addWardrobeItem,
   API_BASE,
+  deleteCalendarSource,
+  deleteGrocery,
+  deleteReceipt,
+  deleteScheduleItem,
+  deleteWardrobeItem,
   getAppleCalendarStatus,
   getBudgetStatus,
   getCalendarSources,
@@ -254,6 +259,12 @@ function App() {
     loadData();
   }
 
+  async function handleDelete(action, successMessage) {
+    await action();
+    setNotice(successMessage);
+    loadData();
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -352,6 +363,7 @@ function App() {
           <DataList
             rows={groceries.slice(0, 8)}
             render={(item) => `${item.name} - ${item.quantity}${item.expires_on ? ` - expires ${item.expires_on}` : ""}`}
+            onDelete={(item) => handleDelete(() => deleteGrocery(item.id), "Grocery removed.")}
           />
         </Panel>
 
@@ -385,6 +397,7 @@ function App() {
                   <strong>{item.name}</strong>
                   <span>{item.color} - {item.style}</span>
                 </div>
+                <button className="danger-button" type="button" onClick={() => handleDelete(() => deleteWardrobeItem(item.id), "Wardrobe item removed.")}>Remove</button>
               </article>
             ))}
           </div>
@@ -402,6 +415,11 @@ function App() {
             <button className="secondary-button" type="button" onClick={handleCalendarSync}>Sync saved calendars</button>
             <span>{calendarSources.length} saved source(s)</span>
           </div>
+          <DataList
+            rows={calendarSources.filter((source) => source.active).slice(0, 4)}
+            render={(source) => `${source.name} - ${source.source_type}${source.last_synced_at ? ` - synced ${source.last_synced_at}` : ""}`}
+            onDelete={(source) => handleDelete(() => deleteCalendarSource(source.id), "Calendar source disabled.")}
+          />
           <form onSubmit={handleScheduleSubmit} className="form-grid compact">
             <input required placeholder="Title" value={scheduleForm.title} onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })} />
             <select value={scheduleForm.activity_type} onChange={(e) => setScheduleForm({ ...scheduleForm, activity_type: e.target.value })}>
@@ -417,7 +435,11 @@ function App() {
             <input placeholder="Nearby store" value={scheduleForm.near_store} onChange={(e) => setScheduleForm({ ...scheduleForm, near_store: e.target.value })} />
             <button className="primary-button" type="submit"><Plus size={16} /> Add</button>
           </form>
-          <DataList rows={schedule.slice(0, 8)} render={(item) => `${item.title} - ${item.starts_at.slice(11, 16)}-${item.ends_at.slice(11, 16)}`} />
+          <DataList
+            rows={schedule.slice(0, 8)}
+            render={(item) => `${item.title} - ${item.starts_at.slice(11, 16)}-${item.ends_at.slice(11, 16)}`}
+            onDelete={(item) => handleDelete(() => deleteScheduleItem(item.id), "Schedule item removed.")}
+          />
         </Panel>
 
         <Panel title="Receipt Text" icon={<ReceiptText size={18} />}>
@@ -461,6 +483,7 @@ function App() {
                   <strong>{item.store} - {item.total.toFixed(2)} EUR</strong>
                   <span>{item.purchased_on} - {item.status} - {item.items.length} item(s)</span>
                 </div>
+                <button className="danger-button" type="button" onClick={() => handleDelete(() => deleteReceipt(item.id), "Receipt removed.")}>Remove</button>
               </article>
             ))}
           </div>
@@ -506,12 +529,19 @@ function List({ items, empty }) {
   );
 }
 
-function DataList({ rows, render }) {
+function DataList({ rows, render, onDelete }) {
   if (!rows.length) return <p className="muted">No entries yet.</p>;
   return (
     <ul className="data-list">
       {rows.map((row) => (
-        <li key={row.id}>{render(row)}</li>
+        <li key={row.id}>
+          <span>{render(row)}</span>
+          {onDelete && (
+            <button className="danger-button" type="button" onClick={() => onDelete(row)}>
+              Remove
+            </button>
+          )}
+        </li>
       ))}
     </ul>
   );

@@ -60,7 +60,8 @@ h2 {
 
 .icon-button,
 .primary-button,
-.secondary-button {
+.secondary-button,
+.danger-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -94,6 +95,17 @@ h2 {
   background: #edf3ee;
   font-weight: 700;
   padding: 0 14px;
+}
+
+.danger-button {
+  min-height: 32px;
+  border: 1px solid #d5a59d;
+  border-radius: 8px;
+  color: #84231f;
+  background: #fff0ec;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 10px;
 }
 
 .banner {
@@ -172,9 +184,19 @@ h2 {
 
 .clean-list li,
 .data-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
   border-left: 3px solid #9fb8a6;
   padding-left: 10px;
   color: #304037;
+}
+
+.data-list li span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-list {
@@ -301,7 +323,7 @@ textarea {
 
 .receipt-row {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 58px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   border: 1px solid #ded9cf;
@@ -378,7 +400,7 @@ textarea {
 
 .wardrobe-tile {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
+  grid-template-columns: 68px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   min-height: 84px;
@@ -448,6 +470,12 @@ textarea {
   .source-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .data-list li,
+  .receipt-row,
+  .wardrobe-tile {
+    grid-template-columns: 1fr;
   }
 
   .metric {

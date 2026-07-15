@@ -51,6 +51,20 @@ def create_grocery(payload: dict) -> dict:
     return dict(row)
 
 
+def delete_grocery(grocery_id: int) -> None:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE groceries
+            SET status = 'deleted'
+            WHERE id = ?
+            """,
+            (grocery_id,),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Grocery not found: {grocery_id}")
+
+
 def list_wardrobe_items() -> list[dict]:
     with get_connection() as connection:
         rows = connection.execute(
@@ -95,6 +109,20 @@ def create_wardrobe_item(payload: dict) -> dict:
             (cursor.lastrowid,),
         ).fetchone()
     return _with_image_url(dict(row))
+
+
+def delete_wardrobe_item(item_id: int) -> None:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE wardrobe_items
+            SET status = 'deleted'
+            WHERE id = ?
+            """,
+            (item_id,),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Wardrobe item not found: {item_id}")
 
 
 def list_schedule_for_day(day: date) -> list[dict]:
@@ -142,6 +170,19 @@ def create_schedule_item(payload: dict) -> dict:
             (cursor.lastrowid,),
         ).fetchone()
     return dict(row)
+
+
+def delete_schedule_item(schedule_id: int) -> None:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            DELETE FROM schedule_items
+            WHERE id = ?
+            """,
+            (schedule_id,),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Schedule item not found: {schedule_id}")
 
 
 def import_schedule_events(events: list[dict]) -> dict:
@@ -278,6 +319,20 @@ def mark_calendar_source_synced(source_id: int) -> None:
             """,
             (datetime.now().isoformat(timespec="seconds"), source_id),
         )
+
+
+def delete_calendar_source(source_id: int) -> None:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE calendar_sources
+            SET active = 0
+            WHERE id = ?
+            """,
+            (source_id,),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Calendar source not found: {source_id}")
 
 
 def create_receipt_from_items(
@@ -425,6 +480,13 @@ def get_receipt(receipt_id: int) -> dict:
     result["items"] = [dict(item) for item in items]
     result["image_url"] = _receipt_image_url(result.get("image_path"))
     return result
+
+
+def delete_receipt(receipt_id: int) -> None:
+    get_receipt(receipt_id)
+    with get_connection() as connection:
+        connection.execute("DELETE FROM receipt_items WHERE receipt_id = ?", (receipt_id,))
+        connection.execute("DELETE FROM receipts WHERE id = ?", (receipt_id,))
 
 
 def monthly_expense_summary(month: str) -> dict:
