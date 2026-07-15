@@ -1,18 +1,157 @@
 # Jarvis Student Agent
 
-Jarvis is a personal student-life assistant for daily planning. The first MVP is a local FastAPI backend that combines Dresden weather, schedule, groceries, wardrobe items, and simple planning rules to produce a daily briefing.
+Jarvis is a local-first personal assistant for student life. It is being built for a TU Dresden master's student to reduce daily decision fatigue around schedule, clothing, meals, groceries, receipts, and budget.
 
-## MVP Features
+The goal is to turn scattered context into one useful daily briefing:
 
-- Weather briefing for Dresden through Open-Meteo.
-- SQLite-backed groceries, wardrobe items, schedule items, and preferences.
-- Rule-based daily outfit, meal, shopping, and alert recommendations.
-- API endpoints to list and add groceries, wardrobe items, and schedule events.
-- Seed data so the first briefing works immediately.
+```text
+Today you have a lecture at TU Dresden, football in the evening, light rain after noon, and chicken expiring soon.
+Wear a rain-ready jacket, hoodie, dark jeans, and comfortable shoes.
+Breakfast: oats with banana and yogurt.
+Lunch: rice bowl with tomatoes and eggs.
+Dinner after football: high-protein chicken rice bowl.
+You are near Aldi after campus, so buy milk and bananas.
+```
 
-## Run Locally
+## Vision
 
-Backend:
+Jarvis should become a private, PC-hosted student-life copilot that can:
+
+- read schedule data from Apple Calendar
+- fetch Dresden weather
+- suggest outfits from a real photo-backed wardrobe
+- track groceries from manual entries and receipt scans
+- plan meals around groceries, expiry dates, budget, and activity
+- track monthly food spending
+- remind the user about shopping opportunities near campus
+- later speak through a Bluetooth speaker like a home assistant
+
+## Current Features
+
+### Daily Briefing
+
+- Weather for Dresden through Open-Meteo.
+- Schedule-aware daily summary.
+- Outfit suggestions using weather, activity, and wardrobe metadata.
+- Meal suggestions based on available groceries and sports activity.
+- Alerts for rain, football, expiring groceries, and budget pressure.
+
+### Dashboard
+
+The React dashboard runs locally and provides:
+
+- daily briefing
+- groceries
+- wardrobe with photos
+- schedule management
+- Apple Calendar source sync
+- receipt text/photo workflow
+- monthly expense and budget status
+- OCR status
+
+Frontend URL:
+
+```text
+http://127.0.0.1:5173
+```
+
+Backend API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### Groceries And Meal Planning
+
+- Add groceries manually.
+- Track category, quantity, store, price, and expiry date.
+- Receipt items can automatically create grocery inventory entries.
+- Meal planning prioritizes available ingredients and expiring food.
+
+### Receipt Scanning And Expenses
+
+Jarvis supports:
+
+- receipt text parsing
+- receipt photo upload
+- Tesseract OCR integration
+- manual correction when OCR is unavailable or inaccurate
+- automatic grocery updates from food items
+- monthly spending summaries by category
+- budget status and saving suggestions
+
+If Tesseract is not installed or not on PATH, Jarvis still stores receipt photos as `uploaded_needs_ocr` and lets you paste corrected text later.
+
+### Wardrobe Photos
+
+Wardrobe items can include photos and metadata:
+
+- item type
+- color
+- style
+- warmth
+- rain readiness
+- sport readiness
+- formality
+
+Images are stored locally under:
+
+```text
+backend/uploads/wardrobe
+```
+
+### Apple Calendar Sync
+
+Jarvis syncs Apple Calendar through iCloud CalDAV. This is the backend route for private calendar data without manually exporting `.ics` files.
+
+Credentials are stored only in local `backend/.env`, which is ignored by Git.
+
+## Tech Stack
+
+```text
+Backend:   Python, FastAPI
+Frontend:  React, Vite
+Database:  SQLite
+Weather:   Open-Meteo
+Calendar:  Apple iCloud CalDAV
+OCR:       Tesseract OCR
+Storage:   Local filesystem uploads
+```
+
+## Project Structure
+
+```text
+jarvis/
+  backend/
+    app/
+      main.py
+      database.py
+      repositories.py
+      schemas.py
+      services/
+        apple_caldav.py
+        calendar_import.py
+        calendar_sync.py
+        ocr.py
+        planner.py
+        receipts.py
+        weather.py
+    data/
+    uploads/
+    requirements.txt
+    .env.example
+
+  frontend/
+    src/
+      api.js
+      main.jsx
+      styles.css
+    package.json
+```
+
+## Local Setup
+
+### Backend
 
 ```powershell
 cd F:\Projects\jarvis\backend
@@ -20,22 +159,16 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python -m app.seed
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Then open:
-
-```text
-http://127.0.0.1:8000/daily-briefing
-```
-
-API docs:
+Open:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-Frontend:
+### Frontend
 
 ```powershell
 cd F:\Projects\jarvis\frontend
@@ -43,89 +176,23 @@ npm install
 npm run dev
 ```
 
-Then open:
+Open:
 
 ```text
 http://127.0.0.1:5173
 ```
 
-## First API Endpoints
+## Apple Calendar Setup
 
-```text
-GET  /health
-GET  /daily-briefing
-GET  /groceries
-POST /groceries
-GET  /wardrobe
-POST /wardrobe
-POST /wardrobe/upload-photo
-GET  /schedule
-POST /schedule
-GET  /calendar/apple/status
-GET  /calendar/sources
-POST /calendar/sources
-POST /calendar/sync
-POST /calendar/import-ics-url
-POST /calendar/import-ics-text
-GET  /receipts
-POST /receipts/from-text
-POST /receipts/upload-photo
-POST /receipts/scan-photo
-POST /receipts/{receipt_id}/process-text
-GET  /expenses/monthly
-GET  /ocr/status
-GET  /budget
-PUT  /budget
-GET  /budget/status
-```
-
-Example receipt text payload:
-
-```json
-{
-  "store": "Aldi",
-  "purchased_on": "2026-06-27",
-  "raw_text": "Milk 1,09\nEggs 2,49\nChicken 4,99\nChocolate 1,59\nTOTAL 10,16"
-}
-```
-
-Jarvis will parse the line items, add food items to the grocery inventory, keep snack/household items out of groceries, and include everything in monthly spending summaries.
-
-Receipt photo workflow:
-
-- `POST /receipts/upload-photo` stores a receipt image and marks it as `uploaded_needs_ocr`.
-- `POST /receipts/scan-photo` stores a receipt image and attempts OCR with Tesseract.
-- `GET /ocr/status` tells you whether Tesseract is available on this machine.
-- `POST /receipts/{receipt_id}/process-text` lets you paste corrected OCR text for an uploaded receipt.
-
-If Tesseract is not installed or not on PATH, Jarvis still stores the receipt photo safely and waits for manual text or future OCR setup.
-
-The dashboard Receipt panel supports this same flow:
-
-1. Upload a receipt photo.
-2. Jarvis attempts OCR if Tesseract is installed.
-3. If OCR is unavailable, the receipt is saved as `uploaded_needs_ocr`.
-4. Select that receipt, paste corrected text, and apply it.
-5. Jarvis updates groceries and monthly expenses.
-
-Budget endpoints:
-
-- `GET /budget` shows current monthly budget settings.
-- `PUT /budget` updates food, snack, and eating-out budgets.
-- `GET /budget/status?month=2026-06` compares tracked spending against the monthly food budget.
-
-## Apple Calendar Sync
-
-Jarvis syncs Apple Calendar through iCloud CalDAV. This is the backend route for private Apple Calendar data without relying on manually exported `.ics` files.
-
-Create a local backend config:
+1. Create an Apple app-specific password from your Apple Account security settings.
+2. Copy the local config template:
 
 ```powershell
 cd F:\Projects\jarvis\backend
 copy .env.example .env
 ```
 
-Edit `backend/.env`:
+3. Edit `backend/.env`:
 
 ```text
 APPLE_CALDAV_USERNAME=your-apple-id@example.com
@@ -134,38 +201,123 @@ APPLE_CALDAV_CALENDAR_NAME=
 APPLE_CALDAV_BASE_URL=https://caldav.icloud.com
 ```
 
-Use an Apple app-specific password, not your normal Apple ID password. Create one from your Apple Account security settings.
-
-Then restart the FastAPI backend and open:
-
-```text
-GET http://127.0.0.1:8000/calendar/apple/status
-```
-
-The dashboard Schedule panel can save an Apple Calendar source and run `Sync saved calendars`. Jarvis also syncs saved calendar sources when the daily briefing loads.
-
-Local `.ics` files are ignored by Git because they may contain private schedule data, but the dashboard no longer uses local files for calendar sync.
-
-## Wardrobe Photos
-
-The dashboard Wardrobe panel accepts an image file when adding a clothing item. Jarvis stores the image under:
+4. Restart the backend.
+5. Check:
 
 ```text
-backend/uploads/wardrobe
+http://127.0.0.1:8000/calendar/apple/status
 ```
 
-The API serves stored images through:
+6. In the dashboard Schedule panel:
+
+- click `Link Apple`
+- click `Sync saved calendars`
+
+Jarvis also syncs saved calendar sources when the daily briefing loads.
+
+## Tesseract OCR Setup
+
+After installing Tesseract on Windows, restart the terminal or PC so PATH updates.
+
+Check:
+
+```powershell
+tesseract --version
+```
+
+Then check Jarvis:
 
 ```text
-http://127.0.0.1:8000/uploads/...
+http://127.0.0.1:8000/ocr/status
 ```
 
-This gives Jarvis a photo-backed wardrobe database for more accurate outfit planning later.
+If configured correctly, Jarvis will attempt automatic OCR when receipt photos are uploaded.
 
-## Next Milestones
+## Main API Endpoints
 
-1. Add CRUD endpoints for groceries, wardrobe, and schedule.
-2. Add receipt photo upload and OCR parsing.
-3. Add expense tracking and monthly savings insights.
-4. Add wardrobe photo upload and aesthetic outfit scoring.
-5. Add voice input/output and iPhone Shortcut hooks.
+```text
+GET  /health
+GET  /daily-briefing
+
+GET  /groceries
+POST /groceries
+
+GET  /wardrobe
+POST /wardrobe
+POST /wardrobe/upload-photo
+
+GET  /schedule
+POST /schedule
+
+GET  /calendar/apple/status
+GET  /calendar/sources
+POST /calendar/sources
+POST /calendar/sync
+
+GET  /receipts
+POST /receipts/from-text
+POST /receipts/upload-photo
+POST /receipts/scan-photo
+POST /receipts/{receipt_id}/process-text
+
+GET  /expenses/monthly
+
+GET  /budget
+PUT  /budget
+GET  /budget/status
+
+GET  /ocr/status
+```
+
+## Privacy Notes
+
+Jarvis is designed as a local-first personal project.
+
+- SQLite data stays on your PC.
+- Uploaded wardrobe and receipt photos stay under `backend/uploads`.
+- `.env` is ignored by Git and should contain credentials only locally.
+- `.ics` files are ignored by Git because they may expose private calendar data.
+- Apple Calendar uses an app-specific password, not your normal Apple ID password.
+
+## Roadmap
+
+### Short Term
+
+- Improve Apple Calendar sync reliability and event filtering.
+- Add edit/delete controls for groceries, wardrobe, schedule, and receipts.
+- Add better receipt OCR cleanup for German supermarket receipts.
+- Add dashboard views for weekly spending and grocery expiry.
+
+### Wardrobe Intelligence
+
+- Improve outfit scoring using color harmony, style tags, weather, and activity.
+- Add laundry/availability state.
+- Add outfit history so Jarvis avoids repeating the same outfit too often.
+- Later: use vision models or image embeddings for better clothing understanding.
+
+### Meal Intelligence
+
+- Add recipe database.
+- Generate meals from groceries and expiry dates.
+- Add football/gym recovery meals.
+- Add cheap student meal mode.
+- Add Mensa comparison later.
+
+### Voice Jarvis
+
+- Add wake word.
+- Add speech-to-text.
+- Add text-to-speech.
+- Output daily briefing through Bluetooth speaker.
+
+### iPhone Integration
+
+- Apple Shortcuts webhook for location-aware reminders.
+- Shopping alerts near Aldi/Rewe/Lidl.
+- Faster photo upload from phone to Jarvis.
+
+## Current Development Status
+
+Jarvis is a working local MVP with backend, dashboard, receipt workflow, Apple Calendar CalDAV foundation, wardrobe photos, budget tracking, and weather-based daily briefing.
+
+The next major development step is to improve the intelligence layer: better outfit matching and smarter meal planning from real groceries.
