@@ -24,6 +24,65 @@ def list_groceries() -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def grocery_expiry_summary(day: date) -> dict:
+    buckets = {
+        "expired": [],
+        "today": [],
+        "soon": [],
+        "later": [],
+        "unknown": [],
+    }
+    for item in list_groceries():
+        expires_on = item.get("expires_on")
+        if not expires_on:
+            buckets["unknown"].append(_expiry_item(item, None, "unknown"))
+            continue
+        try:
+            days_left = (date.fromisoformat(expires_on) - day).days
+        except ValueError:
+            buckets["unknown"].append(_expiry_item(item, None, "unknown"))
+            continue
+
+        if days_left < 0:
+            buckets["expired"].append(_expiry_item(item, days_left, "expired"))
+        elif days_left == 0:
+            buckets["today"].append(_expiry_item(item, days_left, "today"))
+        elif days_left <= 3:
+            buckets["soon"].append(_expiry_item(item, days_left, "soon"))
+        else:
+            buckets["later"].append(_expiry_item(item, days_left, "later"))
+
+    return {
+        **buckets,
+        "suggestions": _expiry_suggestions(buckets),
+    }
+
+
+def _expiry_item(item: dict, days_left: int | None, urgency: str) -> dict:
+    return {
+        "id": item["id"],
+        "name": item["name"],
+        "category": item["category"],
+        "quantity": item["quantity"],
+        "expires_on": item.get("expires_on"),
+        "days_left": days_left,
+        "urgency": urgency,
+    }
+
+
+def _expiry_suggestions(buckets: dict[str, list[dict]]) -> list[str]:
+    suggestions: list[str] = []
+    priority = buckets["expired"] + buckets["today"] + buckets["soon"]
+    if priority:
+        names = ", ".join(item["name"] for item in priority[:4])
+        suggestions.append(f"Use these first: {names}.")
+    if buckets["unknown"]:
+        suggestions.append("Add expiry dates to groceries with unknown shelf life for better meal planning.")
+    if not suggestions:
+        suggestions.append("Pantry looks calm. Keep using older groceries first.")
+    return suggestions
+
+
 def create_grocery(payload: dict) -> dict:
     with get_connection() as connection:
         cursor = connection.execute(

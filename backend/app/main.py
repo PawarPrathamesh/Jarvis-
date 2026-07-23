@@ -22,6 +22,7 @@ from app.repositories import (
     delete_schedule_item,
     delete_wardrobe_item,
     get_budget_settings,
+    grocery_expiry_summary,
     import_schedule_events,
     list_calendar_sources,
     list_receipts,
@@ -47,6 +48,8 @@ from app.schemas import (
     CalendarImportText,
     CalendarImportUrl,
     DailyBriefing,
+    GroceryExpirySummary,
+    LlmStatus,
     MonthlyExpenseSummary,
     OcrStatus,
     Receipt,
@@ -64,6 +67,7 @@ from app.services.assistant import answer_student_question
 from app.services.apple_caldav import AppleCalDAVConfigError, discover_apple_calendars
 from app.services.calendar_import import parse_ics_events
 from app.services.calendar_sync import sync_calendar_sources
+from app.services.llm import improve_answer_with_llm, llm_status
 from app.services.planner import build_daily_briefing
 from app.services.ocr import OcrUnavailableError, extract_text_from_image, tesseract_available
 from app.services.receipts import parse_receipt_text
@@ -128,13 +132,21 @@ async def _build_assistant_context(day: date | None = None) -> tuple[DailyBriefi
 async def ask_assistant(payload: AssistantAsk) -> dict:
     target_day = _target_day_from_question(payload.question)
     briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context(target_day)
-    return answer_student_question(
+    base_result = answer_student_question(
         payload.question,
         briefing,
         groceries_data,
         expenses_data,
         budget_data,
         target_day=target_day,
+    )
+    return await improve_answer_with_llm(
+        payload.question,
+        base_result,
+        briefing,
+        groceries_data,
+        expenses_data,
+        budget_data,
     )
 
 
@@ -165,13 +177,21 @@ async def alexa_webhook(payload: dict) -> dict:
 
     target_day = _target_day_from_question(question)
     briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context(target_day)
-    result = answer_student_question(
+    base_result = answer_student_question(
         question,
         briefing,
         groceries_data,
         expenses_data,
         budget_data,
         target_day=target_day,
+    )
+    result = await improve_answer_with_llm(
+        question,
+        base_result,
+        briefing,
+        groceries_data,
+        expenses_data,
+        budget_data,
     )
     should_end = result["intent"] != "help"
     return _alexa_response(result["answer"], should_end_session=should_end)
@@ -235,6 +255,16 @@ def _alexa_response(text: str, should_end_session: bool = True) -> dict:
 @app.get("/groceries", response_model=list[Grocery])
 def groceries() -> list[dict]:
     return list_groceries()
+
+
+@app.get("/groceries/expiry", response_model=GroceryExpirySummary)
+def groceries_expiry(day: date | None = None) -> dict:
+    return grocery_expiry_summary(day or date.today())
+
+
+@app.get("/llm/status", response_model=LlmStatus)
+def llm_config_status() -> dict:
+    return llm_status()
 
 
 @app.post("/groceries", response_model=Grocery, status_code=201)

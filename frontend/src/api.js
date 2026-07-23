@@ -39,6 +39,10 @@ export function getGroceries() {
   return request("/groceries");
 }
 
+export function getGroceryExpiry() {
+  return request("/groceries/expiry");
+}
+
 export function addGrocery(payload) {
   return request("/groceries", {
     method: "POST",
@@ -185,6 +189,10 @@ export function getBudgetStatus(month) {
 
 export function getOcrStatus() {
   return request("/ocr/status");
+}
+
+export function getLlmStatus() {
+  return request("/llm/status");
 }
 
 export { API_BASE };

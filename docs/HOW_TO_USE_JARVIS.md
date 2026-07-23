@@ -9,6 +9,7 @@ Dashboard:       http://127.0.0.1:5173
 Backend health:  http://127.0.0.1:8000/health
 Backend docs:    http://127.0.0.1:8000/docs
 Alexa webhook:   http://127.0.0.1:8000/alexa/webhook
+LLM status:      http://127.0.0.1:8000/llm/status
 ```
 
 ## Start Jarvis
@@ -243,6 +244,30 @@ Check OCR:
 http://127.0.0.1:8000/ocr/status
 ```
 
+## Enable Optional AI Reasoning
+
+Jarvis works without an LLM. To enable natural AI answers, edit:
+
+```text
+F:\Projects\jarvis\backend\.env
+```
+
+Add:
+
+```text
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-5-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+Restart backend, then check:
+
+```text
+http://127.0.0.1:8000/llm/status
+```
+
+If enabled, `/assistant/ask` and Alexa answers can use the LLM while staying grounded in Jarvis data.
+
 ## Useful API Commands
 
 Health:
@@ -273,6 +298,18 @@ Calendar sync:
 
 ```powershell
 Invoke-RestMethod -Uri http://127.0.0.1:8000/calendar/sync -Method Post
+```
+
+Grocery expiry:
+
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:8000/groceries/expiry
+```
+
+LLM status:
+
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:8000/llm/status
 ```
 
 Budget:
@@ -349,3 +386,21 @@ Push changes:
 ```powershell
 git push
 ```
+
+## Run Tests
+
+Backend tests:
+
+```powershell
+cd F:\Projects\jarvis\backend
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Frontend production build:
+
+```powershell
+cd F:\Projects\jarvis\frontend
+npm run build
+```
+
+GitHub Actions runs both checks automatically on push and pull request.

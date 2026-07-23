@@ -393,7 +393,7 @@ h2 {
 
 .metrics-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-top: 16px;
 }
@@ -410,6 +410,51 @@ h2 {
 
 .metric p {
   color: #59665d;
+}
+
+.pantry-dashboard {
+  margin-top: 16px;
+}
+
+.expiry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.expiry-bucket {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d6d2c8;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfaf5;
+}
+
+.expiry-bucket span {
+  color: #68746b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.expiry-bucket strong {
+  color: #24322a;
+  font-size: 1.4rem;
+}
+
+.expiry-bucket small {
+  color: #59665d;
+  min-height: 34px;
+}
+
+.expiry-bucket.warning {
+  border-color: #d5a847;
+}
+
+.expiry-bucket.danger {
+  border-color: #c56a5d;
 }
 
 .metric.good {
@@ -651,6 +696,7 @@ textarea {
   .overview-grid,
   .work-grid,
   .metrics-row,
+  .expiry-grid,
   .assistant-console,
   .assistant-form,
   .form-grid,

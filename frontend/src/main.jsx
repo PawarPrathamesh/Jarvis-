@@ -33,7 +33,9 @@ import {
   getCalendarSources,
   getDailyBriefing,
   getExpenses,
+  getGroceryExpiry,
   getGroceries,
+  getLlmStatus,
   getOcrStatus,
   getReceipts,
   getSchedule,
@@ -69,6 +71,8 @@ function App() {
   const [expenses, setExpenses] = useState(null);
   const [budget, setBudget] = useState(null);
   const [ocr, setOcr] = useState(null);
+  const [llm, setLlm] = useState(null);
+  const [expiry, setExpiry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -138,6 +142,8 @@ function App() {
         expensesData,
         budgetData,
         ocrData,
+        llmData,
+        expiryData,
       ] = await Promise.all([
         getDailyBriefing(),
         getGroceries(),
@@ -149,6 +155,8 @@ function App() {
         getExpenses(currentMonth()),
         getBudgetStatus(currentMonth()),
         getOcrStatus(),
+        getLlmStatus(),
+        getGroceryExpiry(),
       ]);
 
       setBriefing(briefingData);
@@ -161,6 +169,8 @@ function App() {
       setExpenses(expensesData);
       setBudget(budgetData);
       setOcr(ocrData);
+      setLlm(llmData);
+      setExpiry(expiryData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -475,6 +485,29 @@ function App() {
           detail={ocr?.message || "Checking OCR status."}
           icon={<ReceiptText size={18} />}
         />
+        <Metric
+          title="AI Reasoning"
+          value={llm?.available ? "Enabled" : "Local"}
+          detail={llm?.message || "Checking AI status."}
+          icon={<Bot size={18} />}
+          tone={llm?.available ? "good" : "neutral"}
+        />
+      </section>
+
+      <section className="pantry-dashboard">
+        <Panel title="Pantry Expiry" icon={<AlertTriangle size={18} />}>
+          {expiry && (
+            <>
+              <div className="expiry-grid">
+                <ExpiryBucket title="Expired" items={expiry.expired} tone="danger" />
+                <ExpiryBucket title="Today" items={expiry.today} tone="warning" />
+                <ExpiryBucket title="Soon" items={expiry.soon} tone="warning" />
+                <ExpiryBucket title="Unknown" items={expiry.unknown} />
+              </div>
+              <List items={expiry.suggestions} empty="No pantry suggestions yet." />
+            </>
+          )}
+        </Panel>
       </section>
 
       <section className="work-grid">
@@ -677,6 +710,16 @@ function List({ items, empty }) {
         <li key={`${item}-${index}`}>{item}</li>
       ))}
     </ul>
+  );
+}
+
+function ExpiryBucket({ title, items, tone = "neutral" }) {
+  return (
+    <article className={`expiry-bucket ${tone}`}>
+      <span>{title}</span>
+      <strong>{items.length}</strong>
+      <small>{items.slice(0, 2).map((item) => item.name).join(", ") || "None"}</small>
+    </article>
   );
 }
 

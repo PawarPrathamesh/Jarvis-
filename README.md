@@ -34,6 +34,7 @@ Jarvis should become a private, PC-hosted student-life copilot that can:
 - Schedule-aware daily summary.
 - Outfit suggestions using weather, activity, and wardrobe metadata.
 - Meal suggestions based on available groceries and sports activity.
+- Optional OpenAI LLM reasoning layer for more natural answers when configured.
 - Alerts for rain, football, expiring groceries, and budget pressure.
 
 ### Dashboard
@@ -47,6 +48,8 @@ The React dashboard runs locally and provides:
 - Apple Calendar source sync
 - receipt text/photo workflow
 - monthly expense and budget status
+- pantry expiry dashboard
+- AI reasoning status
 - OCR status
 
 Frontend URL:
@@ -300,6 +303,7 @@ POST /assistant/ask
 POST /alexa/webhook
 
 GET  /groceries
+GET  /groceries/expiry
 POST /groceries
 DELETE /groceries/{grocery_id}
 
@@ -332,6 +336,7 @@ PUT  /budget
 GET  /budget/status
 
 GET  /ocr/status
+GET  /llm/status
 ```
 
 ## Privacy Notes
@@ -361,6 +366,24 @@ APPLE_CALDAV_USERNAME=your-apple-id@example.com
 APPLE_CALDAV_PASSWORD=your-app-specific-password
 APPLE_CALDAV_CALENDAR_NAME=
 ```
+
+### Optional AI Reasoning
+
+Jarvis works without an LLM using local rules. To enable more natural AI answers, add an OpenAI API key to `backend/.env`:
+
+```text
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-5-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+Then restart the backend and check:
+
+```text
+http://127.0.0.1:8000/llm/status
+```
+
+When enabled, Jarvis still grounds answers in local Jarvis context: schedule, weather, groceries, wardrobe, meals, expenses, and budget.
 
 ### Alexa
 
@@ -422,8 +445,9 @@ This avoids needing a full iOS app in the first version.
 
 - Improve Apple Calendar sync reliability and event filtering.
 - Add edit/delete controls for groceries, wardrobe, schedule, and receipts.
-- Add better receipt OCR cleanup for German supermarket receipts.
-- Add dashboard views for weekly spending and grocery expiry.
+- Expand German supermarket receipt parsing with more real examples.
+- Add dashboard views for weekly spending.
+- Add CI coverage for frontend unit tests.
 
 ### Wardrobe Intelligence
 

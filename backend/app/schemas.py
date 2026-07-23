@@ -112,6 +112,12 @@ class OcrStatus(BaseModel):
     message: str
 
 
+class LlmStatus(BaseModel):
+    available: bool
+    model: str
+    message: str
+
+
 class ReceiptItem(BaseModel):
     id: int
     receipt_id: int
@@ -144,6 +150,25 @@ class MonthlyExpenseSummary(BaseModel):
     month: str
     total: float
     categories: list[ExpenseCategorySummary]
+    suggestions: list[str]
+
+
+class GroceryExpiryItem(BaseModel):
+    id: int
+    name: str
+    category: str
+    quantity: str
+    expires_on: str | None = None
+    days_left: int | None = None
+    urgency: str
+
+
+class GroceryExpirySummary(BaseModel):
+    expired: list[GroceryExpiryItem]
+    today: list[GroceryExpiryItem]
+    soon: list[GroceryExpiryItem]
+    later: list[GroceryExpiryItem]
+    unknown: list[GroceryExpiryItem]
     suggestions: list[str]
 
 
