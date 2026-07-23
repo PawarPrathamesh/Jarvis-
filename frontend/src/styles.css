@@ -215,6 +215,59 @@ h2 {
   gap: 10px;
 }
 
+.outfit-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.outfit-choice {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #ded9cf;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fbfaf5;
+}
+
+.outfit-choice img,
+.outfit-placeholder {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+}
+
+.outfit-choice img {
+  object-fit: cover;
+}
+
+.outfit-placeholder {
+  display: grid;
+  place-items: center;
+  color: #68746b;
+  background: #edf1ed;
+}
+
+.outfit-choice strong,
+.outfit-choice span,
+.outfit-choice p {
+  display: block;
+  min-width: 0;
+}
+
+.outfit-choice span {
+  margin-top: 3px;
+  color: #68746b;
+  font-size: 0.82rem;
+}
+
+.outfit-choice p {
+  margin-top: 4px;
+  color: #34443a;
+  font-size: 0.86rem;
+}
+
 .meal-row {
   display: grid;
   gap: 4px;
@@ -473,6 +526,7 @@ textarea {
   }
 
   .data-list li,
+  .outfit-choice,
   .receipt-row,
   .wardrobe-tile {
     grid-template-columns: 1fr;

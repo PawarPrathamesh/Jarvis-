@@ -298,7 +298,26 @@ function App() {
         </Panel>
 
         <Panel title="Outfit" icon={<Shirt size={18} />}>
-          <List items={briefing?.outfit || []} empty="Add wardrobe items to unlock outfit planning." />
+          {briefing?.outfit_details?.length ? (
+            <div className="outfit-detail-list">
+              {briefing.outfit_details.map((item, index) => (
+                <article className="outfit-choice" key={`${item.name}-${index}`}>
+                  {item.image_url ? (
+                    <img src={`${API_BASE}${item.image_url}`} alt={item.name} />
+                  ) : (
+                    <div className="outfit-placeholder"><Shirt size={22} /></div>
+                  )}
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>{item.item_type}{item.color ? ` - ${item.color}` : ""}{item.style ? ` - ${item.style}` : ""}</span>
+                    <p>{item.reason}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <List items={briefing?.outfit || []} empty="Add wardrobe items to unlock outfit planning." />
+          )}
         </Panel>
 
         <Panel title="Meals" icon={<Utensils size={18} />}>

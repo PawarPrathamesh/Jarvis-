@@ -163,11 +163,22 @@ class WeatherSummary(BaseModel):
     condition: str
 
 
+class OutfitChoice(BaseModel):
+    name: str
+    item_type: str
+    color: str | None = None
+    style: str | None = None
+    score: int
+    reason: str
+    image_url: str | None = None
+
+
 class DailyBriefing(BaseModel):
     greeting: str
     weather: WeatherSummary
     schedule: list[str]
     outfit: list[str]
+    outfit_details: list[OutfitChoice] = []
     meals: dict[str, str]
     shopping: list[str]
     alerts: list[str]

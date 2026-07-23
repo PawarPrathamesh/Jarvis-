@@ -1,11 +1,23 @@
 from datetime import date, datetime
 
-from app.schemas import DailyBriefing, WeatherSummary
+from app.schemas import DailyBriefing, OutfitChoice, WeatherSummary
 
 
 PROTEIN_PRIORITY = ["chicken", "tofu", "lentils", "beans", "tuna", "eggs", "egg", "yogurt"]
 CARB_PRIORITY = ["rice", "pasta", "potatoes", "wraps", "bread", "oats"]
 VEG_PRIORITY = ["tomatoes", "tomato", "spinach", "pepper", "onion", "broccoli", "salad"]
+NEUTRAL_COLORS = {"black", "white", "grey", "gray", "dark blue", "navy", "beige", "cream"}
+COLOR_FAMILIES = {
+    "black": {"black", "white", "grey", "gray", "dark blue", "navy", "olive", "beige"},
+    "white": {"black", "grey", "gray", "dark blue", "navy", "blue", "beige"},
+    "grey": {"black", "white", "dark blue", "navy", "blue", "olive"},
+    "gray": {"black", "white", "dark blue", "navy", "blue", "olive"},
+    "dark blue": {"black", "white", "grey", "gray", "blue", "beige"},
+    "navy": {"black", "white", "grey", "gray", "blue", "beige"},
+    "blue": {"white", "grey", "gray", "dark blue", "navy", "beige"},
+    "olive": {"black", "white", "grey", "gray", "beige"},
+    "beige": {"black", "white", "dark blue", "navy", "olive"},
+}
 
 
 def build_daily_briefing(
@@ -16,8 +28,13 @@ def build_daily_briefing(
     day: date,
 ) -> DailyBriefing:
     has_sport = any(item["activity_type"] in {"football", "gym", "sport"} for item in schedule)
+    has_formal = any(
+        any(word in item["title"].lower() for word in ["presentation", "interview", "exam"])
+        for item in schedule
+    )
     schedule_lines = [_format_schedule_item(item) for item in schedule]
-    outfit = _choose_outfit(weather, wardrobe, has_sport)
+    outfit_details = _choose_outfit(weather, wardrobe, has_sport, has_formal)
+    outfit = [item.name for item in outfit_details]
     meals = _choose_meals(groceries, has_sport)
     shopping = _build_shopping_list(groceries, schedule)
     alerts = _build_alerts(weather, groceries, schedule, day)
@@ -27,6 +44,7 @@ def build_daily_briefing(
         weather=weather,
         schedule=schedule_lines,
         outfit=outfit,
+        outfit_details=outfit_details,
         meals=meals,
         shopping=shopping,
         alerts=alerts,
@@ -40,50 +58,149 @@ def _format_schedule_item(item: dict) -> str:
     return f"{start}-{end}: {item['title']}{location}"
 
 
-def _choose_outfit(weather: WeatherSummary, wardrobe: list[dict], has_sport: bool) -> list[str]:
+def _choose_outfit(
+    weather: WeatherSummary,
+    wardrobe: list[dict],
+    has_sport: bool,
+    has_formal: bool,
+) -> list[OutfitChoice]:
     rain = weather.rain_mm > 0 or weather.precipitation_probability >= 50
     cold = weather.temperature_c <= 10
     warm = weather.temperature_c >= 24
 
-    selected: list[str] = []
+    selected: list[OutfitChoice] = []
+    selected_items: list[dict] = []
     types_needed = ["jacket", "top", "bottom", "shoes"]
 
     for item_type in types_needed:
         if item_type == "jacket" and warm and not rain:
-            selected.append("no jacket needed; keep the outfit light")
+            selected.append(
+                OutfitChoice(
+                    name="no jacket needed; keep the outfit light",
+                    item_type="jacket",
+                    color=None,
+                    style=None,
+                    score=0,
+                    reason="It is warm and dry, so an outer layer would be unnecessary.",
+                    image_url=None,
+                )
+            )
             continue
         candidates = [item for item in wardrobe if item["item_type"] == item_type]
         if not candidates:
             continue
-        ranked = sorted(
-            candidates,
-            key=lambda item: _score_wardrobe_item(item, rain=rain, cold=cold, warm=warm),
-            reverse=True,
-        )
-        selected.append(ranked[0]["name"])
+        scored = [
+            _score_wardrobe_item(
+                item,
+                selected_items=selected_items,
+                rain=rain,
+                cold=cold,
+                warm=warm,
+                has_sport=has_sport,
+                has_formal=has_formal,
+            )
+            for item in candidates
+        ]
+        ranked = sorted(scored, key=lambda entry: entry[0], reverse=True)
+        score, reason, item = ranked[0]
+        selected_items.append(item)
+        selected.append(_outfit_choice(item, score, reason))
 
     if has_sport:
         sport_items = [
-            item["name"]
+            _outfit_choice(
+                item,
+                3,
+                "Packed because you have sport today.",
+            )
             for item in wardrobe
-            if item["sport_ready"] and item["name"] not in selected
+            if item["sport_ready"] and item["name"] not in [choice.name for choice in selected]
         ]
         selected.extend(sport_items[:2])
 
     return selected
 
 
-def _score_wardrobe_item(item: dict, rain: bool, cold: bool, warm: bool) -> int:
+def _score_wardrobe_item(
+    item: dict,
+    selected_items: list[dict],
+    rain: bool,
+    cold: bool,
+    warm: bool,
+    has_sport: bool,
+    has_formal: bool,
+) -> tuple[int, str, dict]:
     score = 0
+    reasons: list[str] = []
     if rain and item["rain_ready"]:
         score += 4
+        reasons.append("rain-ready")
     if cold:
-        score += int(item["warmth"]) * 2
+        warmth_score = int(item["warmth"]) * 2
+        score += warmth_score
+        reasons.append(f"warmth {item['warmth']}/5")
     if warm:
         score -= int(item["warmth"])
-    if "minimal" in item["style"] or "casual" in item["style"]:
+        if int(item["warmth"]) <= 2:
+            score += 2
+            reasons.append("light enough for warm weather")
+
+    style = _style_tokens(item)
+    if "minimal" in style or "casual" in style:
         score += 1
-    return score
+        reasons.append("campus-friendly style")
+    if has_sport and item["sport_ready"]:
+        score += 2
+        reasons.append("works with sport day")
+    if has_formal and item.get("formality") in {"smart", "formal"}:
+        score += 3
+        reasons.append("fits a formal schedule item")
+
+    color_score = _color_match_score(item, selected_items)
+    score += color_score
+    if selected_items and color_score > 0:
+        reasons.append("matches selected colors")
+    elif selected_items and color_score < 0:
+        reasons.append("color is less cohesive")
+
+    if item.get("image_url"):
+        score += 1
+        reasons.append("photo-backed wardrobe item")
+
+    reason = ", ".join(reasons) if reasons else "best available match"
+    return score, reason, item
+
+
+def _outfit_choice(item: dict, score: int, reason: str) -> OutfitChoice:
+    return OutfitChoice(
+        name=item["name"],
+        item_type=item["item_type"],
+        color=item.get("color"),
+        style=item.get("style"),
+        score=score,
+        reason=reason,
+        image_url=item.get("image_url"),
+    )
+
+
+def _style_tokens(item: dict) -> set[str]:
+    return {token.strip().lower() for token in item.get("style", "").split(",") if token.strip()}
+
+
+def _color_match_score(item: dict, selected_items: list[dict]) -> int:
+    if not selected_items:
+        return 0
+    color = item.get("color", "").lower()
+    selected_colors = {existing.get("color", "").lower() for existing in selected_items}
+    if color in NEUTRAL_COLORS:
+        return 2
+    if any(color in COLOR_FAMILIES.get(existing, set()) for existing in selected_colors):
+        return 2
+    if any(existing in COLOR_FAMILIES.get(color, set()) for existing in selected_colors):
+        return 2
+    if selected_colors & NEUTRAL_COLORS:
+        return 1
+    return -1
 
 
 def _choose_meals(groceries: list[dict], has_sport: bool) -> dict[str, str]:
