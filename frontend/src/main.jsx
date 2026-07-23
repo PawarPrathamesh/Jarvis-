@@ -322,14 +322,40 @@ function App() {
 
         <Panel title="Meals" icon={<Utensils size={18} />}>
           {briefing && (
-            <div className="meal-grid">
-              {Object.entries(briefing.meals).map(([meal, value]) => (
-                <div className="meal-row" key={meal}>
-                  <span>{meal}</span>
-                  <strong>{value}</strong>
-                </div>
-              ))}
-            </div>
+            briefing.meal_details?.length ? (
+              <div className="meal-detail-list">
+                {briefing.meal_details.map((item) => (
+                  <article className="meal-card" key={item.meal}>
+                    <div className="meal-card-header">
+                      <span>{item.meal}</span>
+                      <strong>{item.name}</strong>
+                    </div>
+                    <div className="meal-meta">
+                      <span>{item.prep_minutes} min</span>
+                      <span>{item.focus}</span>
+                    </div>
+                    <p>{item.reason}</p>
+                    {item.ingredients.length > 0 && (
+                      <div className="ingredient-row">
+                        {item.ingredients.map((ingredient) => (
+                          <span key={ingredient}>{ingredient}</span>
+                        ))}
+                      </div>
+                    )}
+                    {item.budget_note && <small>{item.budget_note}</small>}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="meal-grid">
+                {Object.entries(briefing.meals).map(([meal, value]) => (
+                  <div className="meal-row" key={meal}>
+                    <span>{meal}</span>
+                    <strong>{value}</strong>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </Panel>
 

@@ -173,6 +173,16 @@ class OutfitChoice(BaseModel):
     image_url: str | None = None
 
 
+class MealRecommendation(BaseModel):
+    meal: str
+    name: str
+    ingredients: list[str]
+    prep_minutes: int
+    focus: str
+    reason: str
+    budget_note: str | None = None
+
+
 class DailyBriefing(BaseModel):
     greeting: str
     weather: WeatherSummary
@@ -180,5 +190,6 @@ class DailyBriefing(BaseModel):
     outfit: list[str]
     outfit_details: list[OutfitChoice] = []
     meals: dict[str, str]
+    meal_details: list[MealRecommendation] = []
     shopping: list[str]
     alerts: list[str]

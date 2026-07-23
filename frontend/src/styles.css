@@ -215,6 +215,61 @@ h2 {
   gap: 10px;
 }
 
+.meal-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.meal-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #ded9cf;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfaf5;
+}
+
+.meal-card-header {
+  display: grid;
+  gap: 3px;
+}
+
+.meal-card-header span {
+  color: #68746b;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.meal-card-header strong {
+  color: #24322a;
+}
+
+.meal-meta,
+.ingredient-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.meal-meta span,
+.ingredient-row span {
+  border-radius: 999px;
+  background: #edf1ed;
+  color: #34443a;
+  font-size: 0.78rem;
+  padding: 4px 8px;
+}
+
+.meal-card p {
+  color: #34443a;
+  font-size: 0.86rem;
+}
+
+.meal-card small {
+  color: #68746b;
+  line-height: 1.35;
+}
+
 .outfit-detail-list {
   display: grid;
   gap: 10px;

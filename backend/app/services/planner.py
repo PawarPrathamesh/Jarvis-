@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from app.schemas import DailyBriefing, OutfitChoice, WeatherSummary
+from app.schemas import DailyBriefing, MealRecommendation, OutfitChoice, WeatherSummary
 
 
 PROTEIN_PRIORITY = ["chicken", "tofu", "lentils", "beans", "tuna", "eggs", "egg", "yogurt"]
@@ -35,7 +35,8 @@ def build_daily_briefing(
     schedule_lines = [_format_schedule_item(item) for item in schedule]
     outfit_details = _choose_outfit(weather, wardrobe, has_sport, has_formal)
     outfit = [item.name for item in outfit_details]
-    meals = _choose_meals(groceries, has_sport)
+    meal_details = _choose_meal_details(groceries, schedule, has_sport, day)
+    meals = {item.meal: item.name for item in meal_details}
     shopping = _build_shopping_list(groceries, schedule)
     alerts = _build_alerts(weather, groceries, schedule, day)
 
@@ -46,6 +47,7 @@ def build_daily_briefing(
         outfit=outfit,
         outfit_details=outfit_details,
         meals=meals,
+        meal_details=meal_details,
         shopping=shopping,
         alerts=alerts,
     )
@@ -203,21 +205,123 @@ def _color_match_score(item: dict, selected_items: list[dict]) -> int:
     return -1
 
 
-def _choose_meals(groceries: list[dict], has_sport: bool) -> dict[str, str]:
+def _choose_meal_details(
+    groceries: list[dict],
+    schedule: list[dict],
+    has_sport: bool,
+    day: date,
+) -> list[MealRecommendation]:
     names = {item["name"].lower() for item in groceries}
+    categories = _names_by_category(groceries)
+    expiring = _expiring_items(groceries, day)
     protein = _first_matching(names, PROTEIN_PRIORITY) or "eggs"
     carb = _first_matching(names, CARB_PRIORITY) or "rice"
-    vegetable = _first_matching(names, VEG_PRIORITY) or "tomatoes"
+    vegetable = _first_matching(expiring, VEG_PRIORITY) or _first_matching(names, VEG_PRIORITY) or "tomatoes"
+    busy_day = len(schedule) >= 3
 
-    breakfast = "oats with banana and yogurt" if {"oats", "banana", "yogurt"} & names else "quick eggs and toast"
-    lunch = f"{carb} bowl with {vegetable} and {protein}"
-    dinner = f"high-protein {protein} {carb} bowl" if has_sport else f"simple {carb} with {vegetable}"
+    if {"oats", "banana", "yogurt"} & names:
+        breakfast = MealRecommendation(
+            meal="breakfast",
+            name="oats with banana and yogurt",
+            ingredients=_available_ingredients(names, ["oats", "banana", "yogurt"]),
+            prep_minutes=7,
+            focus="steady morning energy",
+            reason="Fast before university and balanced enough to avoid an early snack run.",
+            budget_note="Uses cheap breakfast staples already in your grocery list.",
+        )
+    elif {"eggs", "egg"} & names and {"bread", "toast"} & names:
+        breakfast = MealRecommendation(
+            meal="breakfast",
+            name="quick eggs and toast",
+            ingredients=_available_ingredients(names, ["eggs", "egg", "bread", "toast"]),
+            prep_minutes=10,
+            focus="simple protein",
+            reason="Good when the morning is tight and you still need something filling.",
+            budget_note="Eggs are a low-cost protein option.",
+        )
+    else:
+        breakfast = MealRecommendation(
+            meal="breakfast",
+            name="quick yogurt bowl",
+            ingredients=_available_ingredients(names, ["yogurt", "oats", "banana"]) or ["yogurt", "oats"],
+            prep_minutes=5,
+            focus="minimum-effort breakfast",
+            reason="Keeps breakfast realistic when the pantry is light.",
+            budget_note="Add missing oats or bananas only if you pass a store.",
+        )
 
-    return {
-        "breakfast": breakfast,
-        "lunch": lunch,
-        "dinner": dinner,
-    }
+    lunch_ingredients = _available_ingredients(names, [carb, vegetable, protein])
+    if expiring & names:
+        lunch_reason = f"Uses {', '.join(sorted(expiring)[:2])} before it goes bad."
+    elif busy_day:
+        lunch_reason = "Packable and easy to reheat between university tasks."
+    else:
+        lunch_reason = "A simple grocery-based meal that keeps lunch cheap."
+
+    lunch = MealRecommendation(
+        meal="lunch",
+        name=f"{carb} bowl with {vegetable} and {protein}",
+        ingredients=lunch_ingredients,
+        prep_minutes=18 if busy_day else 20,
+        focus="campus fuel",
+        reason=lunch_reason,
+        budget_note="Prep one extra portion to reduce Mensa or takeaway spending.",
+    )
+
+    if has_sport:
+        dinner = MealRecommendation(
+            meal="dinner",
+            name=f"high-protein {protein} {carb} bowl",
+            ingredients=_available_ingredients(names, [protein, carb, vegetable]),
+            prep_minutes=22,
+            focus="post-football recovery",
+            reason="Protein supports recovery after sport, while carbs refill energy.",
+            budget_note="Uses your existing pantry base instead of buying a separate recovery meal.",
+        )
+    else:
+        dinner_veg = _first_matching(categories.get("vegetable", set()), VEG_PRIORITY) or vegetable
+        dinner = MealRecommendation(
+            meal="dinner",
+            name=f"simple {carb} with {dinner_veg}",
+            ingredients=_available_ingredients(names, [carb, dinner_veg, protein]),
+            prep_minutes=16,
+            focus="light evening meal",
+            reason="Easy enough for a study evening and still based on groceries you have.",
+            budget_note="Keeps dinner low-cost and avoids duplicate shopping.",
+        )
+
+    return [breakfast, lunch, dinner]
+
+
+def _names_by_category(groceries: list[dict]) -> dict[str, set[str]]:
+    categories: dict[str, set[str]] = {}
+    for item in groceries:
+        category = item.get("category", "other").lower()
+        categories.setdefault(category, set()).add(item["name"].lower())
+    return categories
+
+
+def _expiring_items(groceries: list[dict], day: date) -> set[str]:
+    expiring: set[str] = set()
+    for item in groceries:
+        expires_on = item.get("expires_on")
+        if not expires_on:
+            continue
+        try:
+            days_left = (date.fromisoformat(expires_on) - day).days
+        except ValueError:
+            continue
+        if 0 <= days_left <= 2:
+            expiring.add(item["name"].lower())
+    return expiring
+
+
+def _available_ingredients(names: set[str], candidates: list[str]) -> list[str]:
+    ingredients: list[str] = []
+    for candidate in candidates:
+        if candidate in names and candidate not in ingredients:
+            ingredients.append(candidate)
+    return ingredients
 
 
 def _first_matching(names: set[str], candidates: list[str]) -> str | None:
