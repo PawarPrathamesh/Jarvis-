@@ -1,4 +1,5 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_HOST = window.location.hostname || "127.0.0.1";
+const API_BASE = `http://${API_HOST}:8000`;
 
 async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData;
