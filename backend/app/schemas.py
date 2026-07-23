@@ -154,6 +154,17 @@ class BudgetStatus(BaseModel):
     message: str
 
 
+class AssistantAsk(BaseModel):
+    question: str
+
+
+class AssistantAnswer(BaseModel):
+    answer: str
+    intent: str
+    suggestions: list[str] = []
+    source: str = "jarvis_local"
+
+
 class WeatherSummary(BaseModel):
     temperature_c: float
     feels_like_c: float | None = None

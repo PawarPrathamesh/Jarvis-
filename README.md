@@ -244,6 +244,8 @@ If configured correctly, Jarvis will attempt automatic OCR when receipt photos a
 ```text
 GET  /health
 GET  /daily-briefing
+POST /assistant/ask
+POST /alexa/webhook
 
 GET  /groceries
 POST /groceries
@@ -290,6 +292,52 @@ Jarvis is designed as a local-first personal project.
 - `.ics` files are ignored by Git because they may expose private calendar data.
 - Apple Calendar uses an app-specific password, not your normal Apple ID password.
 
+## What You Need To Provide
+
+Do not paste passwords into chat. Put secrets only in `backend/.env`.
+
+### Apple Calendar
+
+- Apple ID email.
+- Apple app-specific password.
+- Optional calendar name if you want Jarvis to sync only one calendar.
+
+Create the app-specific password from your Apple Account security settings, then set:
+
+```text
+APPLE_CALDAV_USERNAME=your-apple-id@example.com
+APPLE_CALDAV_PASSWORD=your-app-specific-password
+APPLE_CALDAV_CALENDAR_NAME=
+```
+
+### Alexa
+
+For Alexa integration we need:
+
+- Amazon Developer account.
+- Alexa Custom Skill named `Jarvis`.
+- A public HTTPS URL for Jarvis, either a temporary tunnel for testing or cloud deployment.
+- Later, the Alexa Skill ID saved in `ALEXA_SKILL_ID`.
+
+The backend now includes:
+
+```text
+POST /assistant/ask
+POST /alexa/webhook
+```
+
+`/assistant/ask` powers the dashboard question box. `/alexa/webhook` returns Alexa-compatible speech responses and will become the skill endpoint.
+
+### iPhone Location Later
+
+For iPhone location alerts, the easiest personal-project route is Apple Shortcuts:
+
+- create a Shortcut automation for arriving near Aldi/Rewe/Lidl or leaving TU Dresden
+- send a webhook request to Jarvis
+- let Jarvis answer with a shopping reminder
+
+This avoids needing a full iOS app in the first version.
+
 ## Roadmap
 
 ### Short Term
@@ -316,10 +364,11 @@ Jarvis is designed as a local-first personal project.
 
 ### Voice Jarvis
 
-- Add wake word.
-- Add speech-to-text.
-- Add text-to-speech.
-- Output daily briefing through Bluetooth speaker.
+- Add dashboard question endpoint.
+- Add Alexa Custom Skill webhook.
+- Add wake word for PC-only mode later.
+- Add speech-to-text and text-to-speech for Bluetooth speaker.
+- Output daily briefing through Bluetooth speaker or Alexa.
 
 ### iPhone Integration
 

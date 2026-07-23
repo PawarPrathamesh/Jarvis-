@@ -2,18 +2,21 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   AlertTriangle,
+  Bot,
   CalendarPlus,
   CloudSun,
   Euro,
   Plus,
   ReceiptText,
   RefreshCw,
+  Send,
   Shirt,
   ShoppingBasket,
   Utensils,
 } from "lucide-react";
 import {
   addGrocery,
+  askAssistant,
   addCalendarSource,
   addReceiptText,
   addScheduleItem,
@@ -68,6 +71,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [assistantQuestion, setAssistantQuestion] = useState("");
+  const [assistantAnswer, setAssistantAnswer] = useState(null);
+  const [assistantLoading, setAssistantLoading] = useState(false);
 
   const [groceryForm, setGroceryForm] = useState({
     name: "",
@@ -265,6 +271,21 @@ function App() {
     loadData();
   }
 
+  async function handleAssistantSubmit(event) {
+    event.preventDefault();
+    if (!assistantQuestion.trim()) return;
+    setAssistantLoading(true);
+    setError("");
+    try {
+      const result = await askAssistant(assistantQuestion);
+      setAssistantAnswer(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -280,6 +301,44 @@ function App() {
       {error && <div className="banner danger">Backend error: {error}</div>}
       {notice && <div className="banner">{notice}</div>}
       {loading && <div className="banner">Loading Jarvis data...</div>}
+
+      <section className="assistant-console">
+        <div className="assistant-copy">
+          <div className="panel-title">
+            <Bot size={20} />
+            <h2>Ask Jarvis</h2>
+          </div>
+          <p>Test the question engine that Alexa will use later.</p>
+        </div>
+        <form onSubmit={handleAssistantSubmit} className="assistant-form">
+          <input
+            placeholder="Ask: What should I wear today?"
+            value={assistantQuestion}
+            onChange={(e) => setAssistantQuestion(e.target.value)}
+          />
+          <button className="primary-button" type="submit" disabled={assistantLoading}>
+            <Send size={16} /> Ask
+          </button>
+        </form>
+        {assistantAnswer && (
+          <div className="assistant-answer">
+            <span>{assistantAnswer.intent}</span>
+            <p>{assistantAnswer.answer}</p>
+            <div className="assistant-suggestions">
+              {assistantAnswer.suggestions.map((suggestion) => (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  key={suggestion}
+                  onClick={() => setAssistantQuestion(suggestion)}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       <section className="overview-grid">
         <Panel title="Today" icon={<CloudSun size={18} />}>

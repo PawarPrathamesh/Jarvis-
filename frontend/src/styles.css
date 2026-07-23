@@ -120,6 +120,59 @@ h2 {
   background: #ffe5df;
 }
 
+.assistant-console {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.4fr);
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 16px;
+  border: 1px solid #d6d2c8;
+  border-radius: 8px;
+  background: #fffefa;
+  padding: 16px;
+}
+
+.assistant-copy p {
+  color: #68746b;
+  font-size: 0.9rem;
+}
+
+.assistant-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.assistant-answer {
+  grid-column: 2;
+  display: grid;
+  gap: 8px;
+  border-left: 3px solid #9fb8a6;
+  padding-left: 12px;
+}
+
+.assistant-answer > span {
+  color: #68746b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.assistant-answer p {
+  color: #24322a;
+}
+
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assistant-suggestions .secondary-button {
+  min-height: 34px;
+  font-size: 0.82rem;
+}
+
 .overview-grid,
 .work-grid {
   display: grid;
@@ -566,6 +619,8 @@ textarea {
   .overview-grid,
   .work-grid,
   .metrics-row,
+  .assistant-console,
+  .assistant-form,
   .form-grid,
   .form-row,
   .calendar-import,
@@ -573,6 +628,10 @@ textarea {
   .calendar-source-form,
   .wardrobe-gallery {
     grid-template-columns: 1fr;
+  }
+
+  .assistant-answer {
+    grid-column: auto;
   }
 
   .source-row {

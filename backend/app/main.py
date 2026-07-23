@@ -34,6 +34,8 @@ from app.repositories import (
     update_budget_settings,
 )
 from app.schemas import (
+    AssistantAnswer,
+    AssistantAsk,
     BudgetSettings,
     BudgetStatus,
     AppleCalendarStatus,
@@ -56,6 +58,7 @@ from app.schemas import (
     WardrobeItem,
     WardrobeItemCreate,
 )
+from app.services.assistant import answer_student_question
 from app.services.calendar_import import parse_ics_events
 from app.services.calendar_sync import sync_calendar_sources
 from app.services.planner import build_daily_briefing
@@ -100,6 +103,84 @@ async def daily_briefing(day: date | None = None) -> DailyBriefing:
     if budget["status"] != "on_track":
         briefing.alerts.append(budget["message"])
     return briefing
+
+
+async def _build_assistant_context(day: date | None = None) -> tuple[DailyBriefing, list[dict], dict, dict]:
+    target_day = day or date.today()
+    await sync_calendar_sources()
+    weather = await get_dresden_weather()
+    groceries_data = list_groceries()
+    wardrobe_data = list_wardrobe_items()
+    schedule_data = list_schedule_for_day(target_day)
+    briefing = build_daily_briefing(weather, groceries_data, wardrobe_data, schedule_data, target_day)
+    month = target_day.strftime("%Y-%m")
+    expenses_data = monthly_expense_summary(month)
+    budget_data = monthly_budget_status(month)
+    if budget_data["status"] != "on_track":
+        briefing.alerts.append(budget_data["message"])
+    return briefing, groceries_data, expenses_data, budget_data
+
+
+@app.post("/assistant/ask", response_model=AssistantAnswer)
+async def ask_assistant(payload: AssistantAsk) -> dict:
+    briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context()
+    return answer_student_question(payload.question, briefing, groceries_data, expenses_data, budget_data)
+
+
+@app.post("/alexa/webhook")
+async def alexa_webhook(payload: dict) -> dict:
+    request = payload.get("request", {})
+    request_type = request.get("type")
+
+    if request_type == "LaunchRequest":
+        question = "help"
+    elif request_type == "IntentRequest":
+        intent = request.get("intent", {})
+        question = _question_from_alexa_intent(intent)
+    else:
+        question = "help"
+
+    briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context()
+    result = answer_student_question(question, briefing, groceries_data, expenses_data, budget_data)
+    should_end = request_type != "LaunchRequest"
+    return _alexa_response(result["answer"], should_end_session=should_end)
+
+
+def _question_from_alexa_intent(intent: dict) -> str:
+    name = intent.get("name", "")
+    slots = intent.get("slots", {})
+    free_question = slots.get("question", {}).get("value")
+    if free_question:
+        return free_question
+    intent_questions = {
+        "DailyBriefingIntent": "daily summary",
+        "ScheduleIntent": "what is my schedule today",
+        "OutfitIntent": "what should I wear today",
+        "MealIntent": "what should I eat today",
+        "ShoppingIntent": "what groceries should I buy",
+        "BudgetIntent": "how much did I spend this month",
+        "WeatherIntent": "what is the weather",
+        "AMAZON.HelpIntent": "help",
+    }
+    return intent_questions.get(name, "daily summary")
+
+
+def _alexa_response(text: str, should_end_session: bool = True) -> dict:
+    return {
+        "version": "1.0",
+        "response": {
+            "outputSpeech": {
+                "type": "PlainText",
+                "text": text,
+            },
+            "card": {
+                "type": "Simple",
+                "title": "Jarvis",
+                "content": text,
+            },
+            "shouldEndSession": should_end_session,
+        },
+    }
 
 
 @app.get("/groceries", response_model=list[Grocery])

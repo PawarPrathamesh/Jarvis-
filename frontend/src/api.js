@@ -28,6 +28,13 @@ export function getDailyBriefing() {
   return request("/daily-briefing");
 }
 
+export function askAssistant(question) {
+  return request("/assistant/ask", {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
 export function getGroceries() {
   return request("/groceries");
 }
