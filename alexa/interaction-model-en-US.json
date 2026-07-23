@@ -33,9 +33,14 @@
           "name": "ScheduleIntent",
           "samples": [
             "what is my schedule today",
+            "what is my schedule tomorrow",
+            "what is my schedule day after tomorrow",
             "what lectures do I have",
+            "what lectures do I have tomorrow",
             "what is on my calendar",
-            "tell me my schedule"
+            "what is on my calendar tomorrow",
+            "tell me my schedule",
+            "tell me my schedule tomorrow"
           ]
         },
         {

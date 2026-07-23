@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.schemas import DailyBriefing
 
 
@@ -7,13 +9,15 @@ def answer_student_question(
     groceries: list[dict],
     expenses: dict,
     budget: dict,
+    target_day: date | None = None,
 ) -> dict:
     normalized = question.strip().lower()
     intent = _detect_intent(normalized)
+    day_label = _day_label(normalized, target_day)
 
     if intent == "schedule":
-        answer = _schedule_answer(briefing)
-        suggestions = ["What should I wear today?", "What should I eat today?"]
+        answer = _schedule_answer(briefing, day_label)
+        suggestions = ["What is my schedule tomorrow?", "What should I wear today?"]
     elif intent == "outfit":
         answer = _outfit_answer(briefing)
         suggestions = ["What should I pack?", "Do I need an umbrella?"]
@@ -35,7 +39,7 @@ def answer_student_question(
         )
         suggestions = ["What is my schedule today?", "What should I eat after football?"]
     else:
-        answer = _daily_summary_answer(briefing)
+        answer = _daily_summary_answer(briefing, day_label)
         suggestions = ["What should I wear today?", "What should I eat today?", "What should I buy?"]
 
     return {
@@ -64,17 +68,18 @@ def _detect_intent(question: str) -> str:
     return "daily_summary"
 
 
-def _daily_summary_answer(briefing: DailyBriefing) -> str:
-    schedule = " ".join(briefing.schedule[:2]) if briefing.schedule else "You have no schedule items saved for today."
+def _daily_summary_answer(briefing: DailyBriefing, day_label: str) -> str:
+    schedule = " ".join(briefing.schedule[:2]) if briefing.schedule else f"You have no schedule items saved for {day_label}."
     meals = ", ".join(f"{meal}: {name}" for meal, name in briefing.meals.items())
     alerts = " ".join(briefing.alerts[:2]) if briefing.alerts else "No urgent alerts."
     return f"{briefing.greeting} {schedule} Meals are {meals}. {alerts}"
 
 
-def _schedule_answer(briefing: DailyBriefing) -> str:
+def _schedule_answer(briefing: DailyBriefing, day_label: str) -> str:
     if not briefing.schedule:
-        return "You have no schedule items saved for today."
-    return "Today your schedule is: " + " ".join(briefing.schedule)
+        return f"You have no schedule items saved for {day_label}."
+    prefix = "Today" if day_label == "today" else day_label.capitalize()
+    return f"{prefix} your schedule is: " + " ".join(briefing.schedule)
 
 
 def _outfit_answer(briefing: DailyBriefing) -> str:
@@ -128,3 +133,15 @@ def _weather_answer(briefing: DailyBriefing) -> str:
         f"It is {weather.temperature_c:.1f} degrees in Dresden with {weather.condition}. "
         f"Rain chance is {weather.precipitation_probability} percent and wind is {weather.wind_kmh:.1f} kilometers per hour."
     )
+
+
+def _day_label(question: str, target_day: date | None) -> str:
+    if "day after tomorrow" in question:
+        return "the day after tomorrow"
+    if "tomorrow" in question:
+        return "tomorrow"
+    if "today" in question:
+        return "today"
+    if target_day and target_day != date.today():
+        return target_day.strftime("%A, %B %d")
+    return "today"

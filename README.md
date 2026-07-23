@@ -392,6 +392,14 @@ ngrok http 8000
 
 Use the HTTPS ngrok URL with `/alexa/webhook` as the Alexa endpoint.
 
+Schedule questions understand simple relative dates:
+
+```text
+ask jarvis tell me what is my schedule today
+ask jarvis tell me what is my schedule tomorrow
+ask jarvis tell me what is my schedule day after tomorrow
+```
+
 ### iPhone Location Later
 
 For iPhone location alerts, the easiest personal-project route is Apple Shortcuts:

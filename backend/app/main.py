@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -126,8 +126,16 @@ async def _build_assistant_context(day: date | None = None) -> tuple[DailyBriefi
 
 @app.post("/assistant/ask", response_model=AssistantAnswer)
 async def ask_assistant(payload: AssistantAsk) -> dict:
-    briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context()
-    return answer_student_question(payload.question, briefing, groceries_data, expenses_data, budget_data)
+    target_day = _target_day_from_question(payload.question)
+    briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context(target_day)
+    return answer_student_question(
+        payload.question,
+        briefing,
+        groceries_data,
+        expenses_data,
+        budget_data,
+        target_day=target_day,
+    )
 
 
 @app.post("/alexa/webhook")
@@ -155,8 +163,16 @@ async def alexa_webhook(payload: dict) -> dict:
     else:
         question = "help"
 
-    briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context()
-    result = answer_student_question(question, briefing, groceries_data, expenses_data, budget_data)
+    target_day = _target_day_from_question(question)
+    briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context(target_day)
+    result = answer_student_question(
+        question,
+        briefing,
+        groceries_data,
+        expenses_data,
+        budget_data,
+        target_day=target_day,
+    )
     should_end = result["intent"] != "help"
     return _alexa_response(result["answer"], should_end_session=should_end)
 
@@ -178,6 +194,16 @@ def _question_from_alexa_intent(intent: dict) -> str:
         "AMAZON.HelpIntent": "help",
     }
     return intent_questions.get(name, "daily summary")
+
+
+def _target_day_from_question(question: str) -> date:
+    normalized = question.lower()
+    today = date.today()
+    if "day after tomorrow" in normalized:
+        return today + timedelta(days=2)
+    if "tomorrow" in normalized:
+        return today + timedelta(days=1)
+    return today
 
 
 def _alexa_response(text: str, should_end_session: bool = True) -> dict:
