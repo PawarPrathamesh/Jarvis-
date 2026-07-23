@@ -56,6 +56,7 @@ from app.schemas import (
     ScheduleItem,
     ScheduleItemCreate,
     WardrobeItem,
+    WardrobeBulkCreate,
     WardrobeItemCreate,
 )
 from app.services.assistant import answer_student_question
@@ -229,6 +230,11 @@ def wardrobe() -> list[dict]:
 @app.post("/wardrobe", response_model=WardrobeItem, status_code=201)
 def add_wardrobe_item(payload: WardrobeItemCreate) -> dict:
     return create_wardrobe_item(payload.model_dump())
+
+
+@app.post("/wardrobe/bulk", response_model=list[WardrobeItem], status_code=201)
+def add_wardrobe_bulk(payload: WardrobeBulkCreate) -> list[dict]:
+    return [create_wardrobe_item(item.model_dump()) for item in payload.items]
 
 
 @app.delete("/wardrobe/{item_id}", status_code=204)

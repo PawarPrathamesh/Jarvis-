@@ -1,0 +1,6 @@
+name,item_type,color,style,warmth,rain_ready,sport_ready,formality
+black rain jacket,jacket,black,casual minimal,4,true,false,casual
+grey hoodie,top,grey,casual,3,false,false,casual
+white sneakers,shoes,white,casual,1,false,false,casual
+black joggers,bottom,black,sport casual,2,false,true,casual
+football boots,sport,black,sport,1,false,true,casual

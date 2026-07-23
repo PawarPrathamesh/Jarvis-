@@ -63,6 +63,13 @@ export function addWardrobeItem(payload) {
   });
 }
 
+export function addWardrobeBulk(items) {
+  return request("/wardrobe/bulk", {
+    method: "POST",
+    body: JSON.stringify({ items }),
+  });
+}
+
 export function deleteWardrobeItem(id) {
   return request(`/wardrobe/${id}`, {
     method: "DELETE",

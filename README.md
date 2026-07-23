@@ -100,6 +100,38 @@ Images are stored locally under:
 backend/uploads/wardrobe
 ```
 
+To feed your real clothes into Jarvis, use the dashboard `Wardrobe` panel.
+
+For best outfit recommendations, add at least:
+
+- 1-2 jackets
+- 4-6 tops
+- 3-4 bottoms
+- 2-3 shoes
+- sport/football clothes if you want post-lecture sport planning
+
+Each item should have:
+
+```text
+name, item type, color, style, warmth, rain ready, sport ready, formality, photo if possible
+```
+
+Warmth is from `1` light to `5` very warm. Good style tags are things like `casual`, `minimal`, `sport`, `smart`, `streetwear`, `formal`, or combinations like `casual minimal`.
+
+For fast setup, use the bulk format in the dashboard:
+
+```text
+black rain jacket,jacket,black,casual minimal,4,true,false,casual
+grey hoodie,top,grey,casual,3,false,false,casual
+white sneakers,shoes,white,casual,1,false,false,casual
+```
+
+An example template is available at:
+
+```text
+data_templates/wardrobe-bulk-example.csv
+```
+
 ### Apple Calendar Sync
 
 Jarvis syncs Apple Calendar through iCloud CalDAV. This is the backend route for private calendar data without manually exporting `.ics` files.

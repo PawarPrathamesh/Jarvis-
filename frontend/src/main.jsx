@@ -20,6 +20,7 @@ import {
   addCalendarSource,
   addReceiptText,
   addScheduleItem,
+  addWardrobeBulk,
   addWardrobeItem,
   API_BASE,
   deleteCalendarSource,
@@ -94,6 +95,7 @@ function App() {
     formality: "casual",
     file: null,
   });
+  const [wardrobeBulkText, setWardrobeBulkText] = useState("");
   const [scheduleForm, setScheduleForm] = useState({
     title: "",
     starts_at: dateTimeLocal(10, 0),
@@ -177,6 +179,19 @@ function App() {
     return "good";
   }, [budget]);
 
+  const wardrobeCoverage = useMemo(() => {
+    const required = ["jacket", "top", "bottom", "shoes", "sport"];
+    const counts = wardrobe.reduce((acc, item) => {
+      acc[item.item_type] = (acc[item.item_type] || 0) + 1;
+      return acc;
+    }, {});
+    return required.map((type) => ({
+      type,
+      count: counts[type] || 0,
+      ready: (counts[type] || 0) > 0,
+    }));
+  }, [wardrobe]);
+
   async function handleGrocerySubmit(event) {
     event.preventDefault();
     await addGrocery({
@@ -203,6 +218,23 @@ function App() {
       });
     }
     setWardrobeForm({ ...wardrobeForm, name: "", color: "", file: null });
+    loadData();
+  }
+
+  async function handleWardrobeBulkSubmit(event) {
+    event.preventDefault();
+    const items = wardrobeBulkText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map(parseWardrobeLine);
+    if (!items.length) {
+      setError("Add at least one wardrobe line.");
+      return;
+    }
+    await addWardrobeBulk(items);
+    setWardrobeBulkText("");
+    setNotice(`${items.length} wardrobe item(s) added.`);
     loadData();
   }
 
@@ -472,6 +504,13 @@ function App() {
         </Panel>
 
         <Panel title="Wardrobe" icon={<Shirt size={18} />}>
+          <div className="coverage-row">
+            {wardrobeCoverage.map((item) => (
+              <span className={item.ready ? "coverage-chip ready" : "coverage-chip"} key={item.type}>
+                {item.type}: {item.count}
+              </span>
+            ))}
+          </div>
           <form onSubmit={handleWardrobeSubmit} className="form-grid compact">
             <input required placeholder="Item name" value={wardrobeForm.name} onChange={(e) => setWardrobeForm({ ...wardrobeForm, name: e.target.value })} />
             <select value={wardrobeForm.item_type} onChange={(e) => setWardrobeForm({ ...wardrobeForm, item_type: e.target.value })}>
@@ -488,6 +527,14 @@ function App() {
             <label className="check"><input type="checkbox" checked={wardrobeForm.sport_ready} onChange={(e) => setWardrobeForm({ ...wardrobeForm, sport_ready: e.target.checked })} /> Sport</label>
             <input type="file" accept="image/*" onChange={(e) => setWardrobeForm({ ...wardrobeForm, file: e.target.files?.[0] || null })} />
             <button className="primary-button" type="submit"><Plus size={16} /> Add</button>
+          </form>
+          <form onSubmit={handleWardrobeBulkSubmit} className="bulk-wardrobe-form">
+            <textarea
+              placeholder={"Bulk add without photos:\nblack rain jacket,jacket,black,casual minimal,4,true,false,casual\nwhite sneakers,shoes,white,casual,1,false,false,casual"}
+              value={wardrobeBulkText}
+              onChange={(e) => setWardrobeBulkText(e.target.value)}
+            />
+            <button className="secondary-button" type="submit">Add Bulk Items</button>
           </form>
           <div className="wardrobe-gallery">
             {wardrobe.slice(0, 8).map((item) => (
@@ -649,6 +696,22 @@ function DataList({ rows, render, onDelete }) {
       ))}
     </ul>
   );
+}
+
+function parseWardrobeLine(line) {
+  const [name, itemType, color, style, warmth, rainReady, sportReady, formality] = line
+    .split(",")
+    .map((part) => part.trim());
+  return {
+    name,
+    item_type: itemType || "top",
+    color: color || "unknown",
+    style: style || "casual",
+    warmth: Number(warmth || 1),
+    rain_ready: ["true", "yes", "rain"].includes((rainReady || "").toLowerCase()),
+    sport_ready: ["true", "yes", "sport"].includes((sportReady || "").toLowerCase()),
+    formality: formality || "casual",
+  };
 }
 
 createRoot(document.getElementById("root")).render(<App />);

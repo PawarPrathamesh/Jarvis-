@@ -33,6 +33,10 @@ class WardrobeItem(WardrobeItemCreate):
     status: str
 
 
+class WardrobeBulkCreate(BaseModel):
+    items: list[WardrobeItemCreate]
+
+
 class ScheduleItemCreate(BaseModel):
     title: str
     starts_at: str
