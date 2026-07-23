@@ -59,6 +59,8 @@ from app.schemas import (
     GroceryCreate,
     ScheduleItem,
     ScheduleItemCreate,
+    ShortcutLocationRequest,
+    ShortcutLocationResponse,
     WardrobeItem,
     WardrobeBulkCreate,
     WardrobeItemCreate,
@@ -69,6 +71,7 @@ from app.services.calendar_import import parse_ics_events
 from app.services.calendar_sync import sync_calendar_sources
 from app.services.llm import improve_answer_with_llm, llm_status
 from app.services.planner import build_daily_briefing
+from app.services.shortcuts import build_location_alert
 from app.services.ocr import OcrUnavailableError, extract_text_from_image, tesseract_available
 from app.services.receipts import parse_receipt_text
 from app.services.weather import get_dresden_weather
@@ -149,6 +152,11 @@ async def ask_assistant(payload: AssistantAsk) -> dict:
         expenses_data,
         budget_data,
     )
+
+
+@app.post("/shortcuts/location-alert", response_model=ShortcutLocationResponse)
+def shortcuts_location_alert(payload: ShortcutLocationRequest) -> dict:
+    return build_location_alert(payload.place, payload.trigger)
 
 
 @app.post("/alexa/webhook")

@@ -199,6 +199,21 @@ class AssistantAnswer(BaseModel):
     source: str = "jarvis_local"
 
 
+class ShortcutLocationRequest(BaseModel):
+    place: str
+    latitude: float | None = None
+    longitude: float | None = None
+    trigger: str = "arrive"
+
+
+class ShortcutLocationResponse(BaseModel):
+    title: str
+    message: str
+    shopping: list[str] = []
+    urgent_groceries: list[str] = []
+    actions: list[str] = []
+
+
 class WeatherSummary(BaseModel):
     temperature_c: float
     feels_like_c: float | None = None

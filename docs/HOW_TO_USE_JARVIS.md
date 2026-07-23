@@ -34,6 +34,13 @@ Then open:
 http://127.0.0.1:5173
 ```
 
+Or use the helper script:
+
+```powershell
+cd F:\Projects\jarvis
+.\scripts\start-local.ps1
+```
+
 ## Restart Jarvis Backend
 
 In the backend terminal, press:
@@ -85,6 +92,34 @@ Stop the backend process by ID:
 
 ```powershell
 Stop-Process -Id YOUR_PROCESS_ID
+```
+
+Or use:
+
+```powershell
+cd F:\Projects\jarvis
+.\scripts\stop-jarvis.ps1
+```
+
+## Start Jarvis For Phone Access
+
+Use the Wi-Fi helper script:
+
+```powershell
+cd F:\Projects\jarvis
+.\scripts\start-wifi.ps1
+```
+
+If IP detection fails, provide the laptop Wi-Fi IP:
+
+```powershell
+.\scripts\start-wifi.ps1 -HostIp 192.168.0.116
+```
+
+Then open this on your phone:
+
+```text
+http://YOUR_LAPTOP_IP:5173
 ```
 
 ## Start Alexa Testing
@@ -184,6 +219,46 @@ Or sync from PowerShell:
 ```powershell
 Invoke-RestMethod -Uri http://127.0.0.1:8000/calendar/sync -Method Post
 ```
+
+## iPhone Shortcuts Location Alert
+
+Create an iPhone Shortcut automation:
+
+```text
+Automation > Arrive > choose Aldi/Rewe/Lidl > Run Immediately
+```
+
+Add action:
+
+```text
+Get Contents of URL
+```
+
+URL:
+
+```text
+http://YOUR_LAPTOP_IP:8000/shortcuts/location-alert
+```
+
+Method:
+
+```text
+POST
+```
+
+Headers:
+
+```text
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{"place":"Aldi Dresden","trigger":"arrive"}
+```
+
+Jarvis returns a shopping/location message. Add a `Show Notification` action using the response message.
 
 ## Feed Wardrobe Data
 

@@ -25,6 +25,7 @@ Jarvis should become a private, PC-hosted student-life copilot that can:
 - track monthly food spending
 - remind the user about shopping opportunities near campus
 - later speak through a Bluetooth speaker like a home assistant
+- receive iPhone Shortcuts location webhooks for shopping reminders
 
 ## Current Features
 
@@ -301,6 +302,7 @@ GET  /health
 GET  /daily-briefing
 POST /assistant/ask
 POST /alexa/webhook
+POST /shortcuts/location-alert
 
 GET  /groceries
 GET  /groceries/expiry
@@ -439,6 +441,18 @@ For iPhone location alerts, the easiest personal-project route is Apple Shortcut
 
 This avoids needing a full iOS app in the first version.
 
+Jarvis now exposes:
+
+```text
+POST /shortcuts/location-alert
+```
+
+Example Shortcut JSON body:
+
+```json
+{"place":"Aldi Dresden","trigger":"arrive"}
+```
+
 ## Roadmap
 
 ### Short Term
@@ -474,7 +488,7 @@ This avoids needing a full iOS app in the first version.
 
 ### iPhone Integration
 
-- Apple Shortcuts webhook for location-aware reminders.
+- Expand Apple Shortcuts webhook with notification templates.
 - Shopping alerts near Aldi/Rewe/Lidl.
 - Faster photo upload from phone to Jarvis.
 
