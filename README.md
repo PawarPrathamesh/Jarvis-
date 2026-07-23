@@ -246,7 +246,21 @@ APPLE_CALDAV_BASE_URL=https://caldav.icloud.com
 http://127.0.0.1:8000/calendar/apple/status
 ```
 
-6. In the dashboard Schedule panel:
+6. List available iCloud calendars:
+
+```text
+http://127.0.0.1:8000/calendar/apple/calendars
+```
+
+If you want a specific calendar, copy its exact `name` into:
+
+```text
+APPLE_CALDAV_CALENDAR_NAME=Calendar
+```
+
+Then restart the backend again.
+
+7. In the dashboard Schedule panel:
 
 - click `Link Apple`
 - click `Sync saved calendars`

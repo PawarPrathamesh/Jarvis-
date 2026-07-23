@@ -36,6 +36,7 @@ from app.repositories import (
 from app.schemas import (
     AssistantAnswer,
     AssistantAsk,
+    AppleCalendarInfo,
     BudgetSettings,
     BudgetStatus,
     AppleCalendarStatus,
@@ -60,6 +61,7 @@ from app.schemas import (
     WardrobeItemCreate,
 )
 from app.services.assistant import answer_student_question
+from app.services.apple_caldav import AppleCalDAVConfigError, discover_apple_calendars
 from app.services.calendar_import import parse_ics_events
 from app.services.calendar_sync import sync_calendar_sources
 from app.services.planner import build_daily_briefing
@@ -346,6 +348,21 @@ def apple_calendar_status() -> dict[str, str | bool]:
         else "Set APPLE_CALDAV_USERNAME and APPLE_CALDAV_PASSWORD in backend/.env."
     )
     return {"configured": configured, "message": message}
+
+
+@app.get("/calendar/apple/calendars", response_model=list[AppleCalendarInfo])
+async def apple_calendar_list() -> list[dict]:
+    try:
+        return await discover_apple_calendars()
+    except AppleCalDAVConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Apple Calendar rejected the request. Check your Apple ID and app-specific password.",
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=400, detail="Could not connect to Apple Calendar.") from exc
 
 
 @app.get("/receipts", response_model=list[Receipt])

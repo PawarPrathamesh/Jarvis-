@@ -92,6 +92,11 @@ class AppleCalendarStatus(BaseModel):
     message: str
 
 
+class AppleCalendarInfo(BaseModel):
+    name: str
+    url: str
+
+
 class ReceiptTextCreate(BaseModel):
     store: str
     purchased_on: str

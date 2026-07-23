@@ -41,6 +41,19 @@ async def fetch_apple_calendar_events(calendar_url: str | None = None) -> list[d
     return events
 
 
+async def discover_apple_calendars() -> list[dict]:
+    if not APPLE_CALDAV_USERNAME or not APPLE_CALDAV_PASSWORD:
+        raise AppleCalDAVConfigError(
+            "Missing APPLE_CALDAV_USERNAME or APPLE_CALDAV_PASSWORD in backend/.env"
+        )
+
+    auth = (APPLE_CALDAV_USERNAME, APPLE_CALDAV_PASSWORD)
+    async with httpx.AsyncClient(timeout=30, auth=auth, follow_redirects=True) as client:
+        principal_url = await _current_user_principal(client)
+        home_url = await _calendar_home_set(client, principal_url)
+        return await _list_calendars(client, home_url)
+
+
 async def _discover_calendar_url(client: httpx.AsyncClient) -> str:
     principal_url = await _current_user_principal(client)
     home_url = await _calendar_home_set(client, principal_url)
