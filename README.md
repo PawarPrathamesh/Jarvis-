@@ -61,6 +61,12 @@ Backend API docs:
 http://127.0.0.1:8000/docs
 ```
 
+Full operating guide:
+
+```text
+docs/HOW_TO_USE_JARVIS.md
+```
+
 ### Groceries And Meal Planning
 
 - Add groceries manually.
