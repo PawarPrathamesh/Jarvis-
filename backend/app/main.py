@@ -133,16 +133,28 @@ async def alexa_webhook(payload: dict) -> dict:
     request_type = request.get("type")
 
     if request_type == "LaunchRequest":
-        question = "help"
+        text = (
+            "Jarvis is ready. You can ask about your schedule, outfit, meals, shopping list, weather, or budget. "
+            "For example, say: what should I wear today?"
+        )
+        return _alexa_response(text, should_end_session=False)
     elif request_type == "IntentRequest":
         intent = request.get("intent", {})
+        intent_name = intent.get("name", "")
+        if intent_name in {"AMAZON.CancelIntent", "AMAZON.StopIntent"}:
+            return _alexa_response("Okay, closing Jarvis.", should_end_session=True)
+        if intent_name == "AMAZON.FallbackIntent":
+            return _alexa_response(
+                "I did not catch that. Try asking: what should I wear today, or what should I eat after football?",
+                should_end_session=False,
+            )
         question = _question_from_alexa_intent(intent)
     else:
         question = "help"
 
     briefing, groceries_data, expenses_data, budget_data = await _build_assistant_context()
     result = answer_student_question(question, briefing, groceries_data, expenses_data, budget_data)
-    should_end = request_type != "LaunchRequest"
+    should_end = result["intent"] != "help"
     return _alexa_response(result["answer"], should_end_session=should_end)
 
 
@@ -166,7 +178,7 @@ def _question_from_alexa_intent(intent: dict) -> str:
 
 
 def _alexa_response(text: str, should_end_session: bool = True) -> dict:
-    return {
+    response = {
         "version": "1.0",
         "response": {
             "outputSpeech": {
@@ -181,6 +193,14 @@ def _alexa_response(text: str, should_end_session: bool = True) -> dict:
             "shouldEndSession": should_end_session,
         },
     }
+    if not should_end_session:
+        response["response"]["reprompt"] = {
+            "outputSpeech": {
+                "type": "PlainText",
+                "text": "What would you like to ask Jarvis?",
+            }
+        }
+    return response
 
 
 @app.get("/groceries", response_model=list[Grocery])

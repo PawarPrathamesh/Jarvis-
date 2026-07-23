@@ -328,6 +328,24 @@ POST /alexa/webhook
 
 `/assistant/ask` powers the dashboard question box. `/alexa/webhook` returns Alexa-compatible speech responses and will become the skill endpoint.
 
+The working Alexa interaction model is stored in:
+
+```text
+alexa/interaction-model-en-US.json
+```
+
+Paste that file into `Build > Interaction Model > JSON Editor`, then click `Save Model` and `Build Model`.
+
+For local testing with ngrok:
+
+```powershell
+cd F:\Projects\jarvis\backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+ngrok http 8000
+```
+
+Use the HTTPS ngrok URL with `/alexa/webhook` as the Alexa endpoint.
+
 ### iPhone Location Later
 
 For iPhone location alerts, the easiest personal-project route is Apple Shortcuts:

@@ -1,0 +1,108 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "jarvis",
+      "intents": [
+        {
+          "name": "AskJarvisIntent",
+          "slots": [
+            {
+              "name": "question",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "answer {question}",
+            "tell me {question}",
+            "can you tell me {question}",
+            "what about {question}",
+            "help me with {question}",
+            "jarvis {question}"
+          ]
+        },
+        {
+          "name": "DailyBriefingIntent",
+          "samples": [
+            "give me my daily briefing",
+            "brief me",
+            "what is my day like",
+            "start my day"
+          ]
+        },
+        {
+          "name": "ScheduleIntent",
+          "samples": [
+            "what is my schedule today",
+            "what lectures do I have",
+            "what is on my calendar",
+            "tell me my schedule"
+          ]
+        },
+        {
+          "name": "OutfitIntent",
+          "samples": [
+            "what should I wear",
+            "what should I wear today",
+            "choose my outfit",
+            "do I need a jacket",
+            "do I need an umbrella"
+          ]
+        },
+        {
+          "name": "MealIntent",
+          "samples": [
+            "what should I eat",
+            "what should I cook",
+            "what should I eat today",
+            "what should I cook for dinner",
+            "what should I eat after football"
+          ]
+        },
+        {
+          "name": "ShoppingIntent",
+          "samples": [
+            "what groceries should I buy",
+            "what should I buy",
+            "make my shopping list",
+            "do I need groceries",
+            "what is expiring soon"
+          ]
+        },
+        {
+          "name": "BudgetIntent",
+          "samples": [
+            "how much did I spend this month",
+            "what is my budget",
+            "how much money is left",
+            "give me saving tips"
+          ]
+        },
+        {
+          "name": "WeatherIntent",
+          "samples": [
+            "what is the weather",
+            "is it raining",
+            "is it cold today",
+            "what is the temperature"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ]
+    }
+  }
+}
