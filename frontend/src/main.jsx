@@ -40,9 +40,11 @@ import {
   getReceipts,
   getSchedule,
   getWardrobe,
+  markOutfitWorn,
   processReceiptText,
   scanReceiptPhoto,
   syncCalendar,
+  updateWardrobeItem,
   uploadWardrobePhoto,
 } from "./api";
 import "./styles.css";
@@ -313,6 +315,28 @@ function App() {
     loadData();
   }
 
+  async function handleMarkOutfitWorn() {
+    const names = (briefing?.outfit_details || [])
+      .map((item) => item.name)
+      .filter((name) => !name.startsWith("no jacket"));
+    const result = await markOutfitWorn(names);
+    setNotice(`Marked ${result.updated} outfit item(s) as worn.`);
+    loadData();
+  }
+
+  async function handleWardrobeStatus(item, laundryStatus) {
+    const payload = { laundry_status: laundryStatus };
+    if (laundryStatus === "worn") {
+      payload.last_worn_on = todayIso();
+    }
+    if (laundryStatus === "clean") {
+      payload.last_worn_on = null;
+    }
+    await updateWardrobeItem(item.id, payload);
+    setNotice(`${item.name} marked ${laundryStatus}.`);
+    loadData();
+  }
+
   async function handleAssistantSubmit(event) {
     event.preventDefault();
     if (!assistantQuestion.trim()) return;
@@ -400,22 +424,27 @@ function App() {
 
         <Panel title="Outfit" icon={<Shirt size={18} />}>
           {briefing?.outfit_details?.length ? (
-            <div className="outfit-detail-list">
-              {briefing.outfit_details.map((item, index) => (
-                <article className="outfit-choice" key={`${item.name}-${index}`}>
-                  {item.image_url ? (
-                    <img src={`${API_BASE}${item.image_url}`} alt={item.name} />
-                  ) : (
-                    <div className="outfit-placeholder"><Shirt size={22} /></div>
-                  )}
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.item_type}{item.color ? ` - ${item.color}` : ""}{item.style ? ` - ${item.style}` : ""}</span>
-                    <p>{item.reason}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <>
+              <div className="outfit-detail-list">
+                {briefing.outfit_details.map((item, index) => (
+                  <article className="outfit-choice" key={`${item.name}-${index}`}>
+                    {item.image_url ? (
+                      <img src={`${API_BASE}${item.image_url}`} alt={item.name} />
+                    ) : (
+                      <div className="outfit-placeholder"><Shirt size={22} /></div>
+                    )}
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>{item.item_type}{item.color ? ` - ${item.color}` : ""}{item.style ? ` - ${item.style}` : ""}</span>
+                      <p>{item.reason}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <button className="secondary-button full-width" type="button" onClick={handleMarkOutfitWorn}>
+                Mark Outfit Worn
+              </button>
+            </>
           ) : (
             <List items={briefing?.outfit || []} empty="Add wardrobe items to unlock outfit planning." />
           )}
@@ -580,8 +609,14 @@ function App() {
                 <div>
                   <strong>{item.name}</strong>
                   <span>{item.color} - {item.style}</span>
+                  <small>{item.laundry_status || "clean"}{item.last_worn_on ? ` - worn ${item.last_worn_on}` : ""}</small>
                 </div>
-                <button className="danger-button" type="button" onClick={() => handleDelete(() => deleteWardrobeItem(item.id), "Wardrobe item removed.")}>Remove</button>
+                <div className="wardrobe-actions">
+                  <button className="secondary-button" type="button" onClick={() => handleWardrobeStatus(item, "clean")}>Clean</button>
+                  <button className="secondary-button" type="button" onClick={() => handleWardrobeStatus(item, "worn")}>Worn</button>
+                  <button className="secondary-button" type="button" onClick={() => handleWardrobeStatus(item, "laundry")}>Laundry</button>
+                  <button className="danger-button" type="button" onClick={() => handleDelete(() => deleteWardrobeItem(item.id), "Wardrobe item removed.")}>Remove</button>
+                </div>
               </article>
             ))}
           </div>

@@ -129,7 +129,7 @@ def list_wardrobe_items() -> list[dict]:
         rows = connection.execute(
             """
             SELECT id, name, item_type, color, style, warmth, rain_ready,
-                   sport_ready, formality, status, image_path
+                   sport_ready, formality, laundry_status, last_worn_on, status, image_path
             FROM wardrobe_items
             WHERE status = 'available'
             ORDER BY item_type, name
@@ -143,8 +143,9 @@ def create_wardrobe_item(payload: dict) -> dict:
         cursor = connection.execute(
             """
             INSERT INTO wardrobe_items
-            (name, item_type, color, style, warmth, rain_ready, sport_ready, formality, image_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, item_type, color, style, warmth, rain_ready, sport_ready, formality,
+             laundry_status, last_worn_on, image_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 payload["name"],
@@ -155,18 +156,84 @@ def create_wardrobe_item(payload: dict) -> dict:
                 int(payload.get("rain_ready", False)),
                 int(payload.get("sport_ready", False)),
                 payload.get("formality", "casual"),
+                payload.get("laundry_status", "clean"),
+                payload.get("last_worn_on"),
                 payload.get("image_path"),
             ),
         )
         row = connection.execute(
             """
             SELECT id, name, item_type, color, style, warmth, rain_ready,
-                   sport_ready, formality, status, image_path
+                   sport_ready, formality, laundry_status, last_worn_on, status, image_path
             FROM wardrobe_items
             WHERE id = ?
             """,
             (cursor.lastrowid,),
         ).fetchone()
+    return _with_image_url(dict(row))
+
+
+def update_wardrobe_item(item_id: int, payload: dict) -> dict:
+    allowed_statuses = {"clean", "worn", "laundry"}
+    updates: list[str] = []
+    values: list[str | int | None] = []
+    if "laundry_status" in payload and payload["laundry_status"] is not None:
+        laundry_status = payload["laundry_status"]
+        if laundry_status not in allowed_statuses:
+            raise ValueError("Unsupported laundry status")
+        updates.append("laundry_status = ?")
+        values.append(laundry_status)
+    if "last_worn_on" in payload:
+        updates.append("last_worn_on = ?")
+        values.append(payload["last_worn_on"])
+    if not updates:
+        return _get_wardrobe_item(item_id)
+
+    values.append(item_id)
+    with get_connection() as connection:
+        cursor = connection.execute(
+            f"""
+            UPDATE wardrobe_items
+            SET {', '.join(updates)}
+            WHERE id = ? AND status = 'available'
+            """,
+            tuple(values),
+        )
+        if cursor.rowcount == 0:
+            raise ValueError(f"Wardrobe item not found: {item_id}")
+    return _get_wardrobe_item(item_id)
+
+
+def mark_outfit_worn(item_names: list[str], worn_on: date) -> dict:
+    filtered_names = [name for name in item_names if name and not name.startswith("no jacket")]
+    if not filtered_names:
+        return {"updated": 0, "worn_on": worn_on.isoformat()}
+    placeholders = ",".join("?" for _ in filtered_names)
+    with get_connection() as connection:
+        cursor = connection.execute(
+            f"""
+            UPDATE wardrobe_items
+            SET laundry_status = 'worn', last_worn_on = ?
+            WHERE name IN ({placeholders}) AND status = 'available'
+            """,
+            (worn_on.isoformat(), *filtered_names),
+        )
+    return {"updated": cursor.rowcount, "worn_on": worn_on.isoformat()}
+
+
+def _get_wardrobe_item(item_id: int) -> dict:
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT id, name, item_type, color, style, warmth, rain_ready,
+                   sport_ready, formality, laundry_status, last_worn_on, status, image_path
+            FROM wardrobe_items
+            WHERE id = ? AND status = 'available'
+            """,
+            (item_id,),
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"Wardrobe item not found: {item_id}")
     return _with_image_url(dict(row))
 
 

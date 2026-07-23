@@ -24,6 +24,8 @@ class WardrobeItemCreate(BaseModel):
     rain_ready: bool = False
     sport_ready: bool = False
     formality: str = "casual"
+    laundry_status: str = "clean"
+    last_worn_on: str | None = None
     image_path: str | None = None
     image_url: str | None = None
 
@@ -33,8 +35,23 @@ class WardrobeItem(WardrobeItemCreate):
     status: str
 
 
+class WardrobeItemUpdate(BaseModel):
+    laundry_status: str | None = None
+    last_worn_on: str | None = None
+
+
 class WardrobeBulkCreate(BaseModel):
     items: list[WardrobeItemCreate]
+
+
+class OutfitWornRequest(BaseModel):
+    item_names: list[str] = []
+    worn_on: str | None = None
+
+
+class OutfitWornResult(BaseModel):
+    updated: int
+    worn_on: str
 
 
 class ScheduleItemCreate(BaseModel):

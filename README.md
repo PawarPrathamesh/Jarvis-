@@ -103,6 +103,8 @@ Wardrobe items can include photos and metadata:
 - rain readiness
 - sport readiness
 - formality
+- laundry status
+- last worn date
 
 Images are stored locally under:
 
@@ -466,8 +468,7 @@ Example Shortcut JSON body:
 ### Wardrobe Intelligence
 
 - Improve outfit scoring using color harmony, style tags, weather, and activity.
-- Add laundry/availability state.
-- Add outfit history so Jarvis avoids repeating the same outfit too often.
+- Expand laundry/history into weekly outfit rotation analytics.
 - Later: use vision models or image embeddings for better clothing understanding.
 
 ### Meal Intelligence

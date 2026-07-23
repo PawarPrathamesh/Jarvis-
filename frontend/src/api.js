@@ -81,6 +81,20 @@ export function deleteWardrobeItem(id) {
   });
 }
 
+export function updateWardrobeItem(id, payload) {
+  return request(`/wardrobe/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function markOutfitWorn(itemNames) {
+  return request("/wardrobe/mark-outfit-worn", {
+    method: "POST",
+    body: JSON.stringify({ item_names: itemNames }),
+  });
+}
+
 export function uploadWardrobePhoto(payload) {
   const formData = new FormData();
   Object.entries(payload).forEach(([key, value]) => {

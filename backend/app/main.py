@@ -29,9 +29,11 @@ from app.repositories import (
     list_groceries,
     list_schedule_for_day,
     list_wardrobe_items,
+    mark_outfit_worn,
     monthly_budget_status,
     monthly_expense_summary,
     process_existing_receipt_text,
+    update_wardrobe_item,
     update_budget_settings,
 )
 from app.schemas import (
@@ -61,9 +63,12 @@ from app.schemas import (
     ScheduleItemCreate,
     ShortcutLocationRequest,
     ShortcutLocationResponse,
+    OutfitWornRequest,
+    OutfitWornResult,
     WardrobeItem,
     WardrobeBulkCreate,
     WardrobeItemCreate,
+    WardrobeItemUpdate,
 )
 from app.services.assistant import answer_student_question
 from app.services.apple_caldav import AppleCalDAVConfigError, discover_apple_calendars
@@ -299,9 +304,23 @@ def add_wardrobe_item(payload: WardrobeItemCreate) -> dict:
     return create_wardrobe_item(payload.model_dump())
 
 
+@app.patch("/wardrobe/{item_id}", response_model=WardrobeItem)
+def patch_wardrobe_item(item_id: int, payload: WardrobeItemUpdate) -> dict:
+    try:
+        return update_wardrobe_item(item_id, payload.model_dump(exclude_unset=True))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.post("/wardrobe/bulk", response_model=list[WardrobeItem], status_code=201)
 def add_wardrobe_bulk(payload: WardrobeBulkCreate) -> list[dict]:
     return [create_wardrobe_item(item.model_dump()) for item in payload.items]
+
+
+@app.post("/wardrobe/mark-outfit-worn", response_model=OutfitWornResult)
+def mark_current_outfit_worn(payload: OutfitWornRequest) -> dict:
+    worn_on = date.fromisoformat(payload.worn_on) if payload.worn_on else date.today()
+    return mark_outfit_worn(payload.item_names, worn_on)
 
 
 @app.delete("/wardrobe/{item_id}", status_code=204)
@@ -339,6 +358,8 @@ async def upload_wardrobe_photo(
             "rain_ready": rain_ready,
             "sport_ready": sport_ready,
             "formality": formality,
+            "laundry_status": "clean",
+            "last_worn_on": None,
             "image_path": relative_path.as_posix(),
         }
     )

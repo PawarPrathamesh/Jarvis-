@@ -88,7 +88,11 @@ def _choose_outfit(
                 )
             )
             continue
-        candidates = [item for item in wardrobe if item["item_type"] == item_type]
+        candidates = [
+            item
+            for item in wardrobe
+            if item["item_type"] == item_type and item.get("laundry_status", "clean") != "laundry"
+        ]
         if not candidates:
             continue
         scored = [
@@ -117,6 +121,7 @@ def _choose_outfit(
             )
             for item in wardrobe
             if item["sport_ready"] and item["name"] not in [choice.name for choice in selected]
+            and item.get("laundry_status", "clean") != "laundry"
         ]
         selected.extend(sport_items[:2])
 
@@ -168,6 +173,13 @@ def _score_wardrobe_item(
     if item.get("image_url"):
         score += 1
         reasons.append("photo-backed wardrobe item")
+    if item.get("laundry_status") == "worn":
+        score -= 2
+        reasons.append("already worn")
+    recent_days = _days_since_worn(item)
+    if recent_days is not None and recent_days <= 2:
+        score -= 2
+        reasons.append("worn recently")
 
     reason = ", ".join(reasons) if reasons else "best available match"
     return score, reason, item
@@ -187,6 +199,16 @@ def _outfit_choice(item: dict, score: int, reason: str) -> OutfitChoice:
 
 def _style_tokens(item: dict) -> set[str]:
     return {token.strip().lower() for token in item.get("style", "").split(",") if token.strip()}
+
+
+def _days_since_worn(item: dict) -> int | None:
+    last_worn_on = item.get("last_worn_on")
+    if not last_worn_on:
+        return None
+    try:
+        return (date.today() - date.fromisoformat(last_worn_on)).days
+    except ValueError:
+        return None
 
 
 def _color_match_score(item: dict, selected_items: list[dict]) -> int:

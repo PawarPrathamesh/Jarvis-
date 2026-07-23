@@ -100,6 +100,8 @@ def initialize_database() -> None:
             """
         )
         _ensure_column(connection, "wardrobe_items", "image_path", "TEXT")
+        _ensure_column(connection, "wardrobe_items", "laundry_status", "TEXT NOT NULL DEFAULT 'clean'")
+        _ensure_column(connection, "wardrobe_items", "last_worn_on", "TEXT")
         _ensure_column(connection, "schedule_items", "external_id", "TEXT")
         _ensure_column(connection, "schedule_items", "source", "TEXT")
 

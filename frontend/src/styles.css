@@ -97,6 +97,11 @@ h2 {
   padding: 0 14px;
 }
 
+.full-width {
+  width: 100%;
+  margin-top: 10px;
+}
+
 .danger-button {
   min-height: 32px;
   border: 1px solid #d5a59d;
@@ -638,7 +643,7 @@ textarea {
 
 .wardrobe-tile {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) auto;
+  grid-template-columns: 68px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   min-height: 84px;
@@ -667,7 +672,8 @@ textarea {
 }
 
 .wardrobe-tile strong,
-.wardrobe-tile span {
+.wardrobe-tile span,
+.wardrobe-tile small {
   display: block;
   min-width: 0;
   overflow: hidden;
@@ -679,6 +685,26 @@ textarea {
   margin-top: 4px;
   color: #68746b;
   font-size: 0.88rem;
+}
+
+.wardrobe-tile small {
+  margin-top: 3px;
+  color: #68746b;
+  font-size: 0.78rem;
+}
+
+.wardrobe-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.wardrobe-actions .secondary-button,
+.wardrobe-actions .danger-button {
+  min-height: 32px;
+  font-size: 0.78rem;
+  padding: 0 8px;
 }
 
 @media (max-width: 1100px) {
@@ -720,7 +746,8 @@ textarea {
   .data-list li,
   .outfit-choice,
   .receipt-row,
-  .wardrobe-tile {
+  .wardrobe-tile,
+  .wardrobe-actions {
     grid-template-columns: 1fr;
   }
 

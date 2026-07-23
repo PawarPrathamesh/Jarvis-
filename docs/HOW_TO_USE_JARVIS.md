@@ -280,6 +280,22 @@ shoes
 sport
 ```
 
+Use the wardrobe buttons to keep Jarvis accurate:
+
+```text
+Clean   -> item is available
+Worn    -> item was worn today and should be avoided for a while
+Laundry -> item is unavailable and will not be recommended
+```
+
+After wearing a suggested outfit, click:
+
+```text
+Mark Outfit Worn
+```
+
+Jarvis records the date and down-ranks those items in future outfit suggestions.
+
 Bulk format:
 
 ```text
